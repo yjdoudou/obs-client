@@ -1,0 +1,124 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --primary-color: #0066ff;
+  --bg-app: #f5f7fa;
+  --bg-card: #ffffff;
+  --text-main: #333333;
+  --text-light: #666666;
+  --border-color: rgba(0, 0, 0, 0.08);
+  --glass-bg: rgba(255, 255, 255, 0.7);
+}
+
+.dark {
+  --bg-app: #121212;
+  --bg-card: #1e1e1e;
+  --text-main: #e0e0e0;
+  --text-light: #888888;
+  --border-color: rgba(255, 255, 255, 0.08);
+  --glass-bg: rgba(30, 30, 30, 0.5);
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background-color: var(--bg-app);
+  color: var(--text-main);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+#app {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Glassmorphism utility */
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--border-color);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 3px;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Element Plus Theme Overrides */
+.el-dialog {
+  background: var(--bg-card) !important;
+  border-radius: 12px !important;
+  border: 1px solid var(--border-color) !important;
+  backdrop-filter: blur(10px);
+}
+
+.el-dialog__title {
+  color: var(--text-main) !important;
+}
+
+.el-input__wrapper {
+  background-color: var(--bg-app) !important;
+  box-shadow: none !important;
+  border: 1px solid var(--border-color) !important;
+  transition: all 0.2s;
+}
+
+.el-button--primary {
+  background-color: var(--primary-color) !important;
+  border-color: var(--primary-color) !important;
+  transition: all 0.2s;
+}
+
+.el-button--primary:hover {
+  filter: brightness(1.1);
+}
+
+.el-table {
+  --el-table-bg-color: transparent !important;
+  --el-table-tr-bg-color: transparent !important;
+  --el-table-header-bg-color: rgba(0, 0, 0, 0.02) !important;
+  --el-table-border-color: var(--border-color) !important;
+  --el-table-text-color: var(--text-main) !important;
+}
+
+.dark .el-table {
+  --el-table-header-bg-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+.el-table__row:hover>td {
+  background-color: rgba(0, 0, 0, 0.02) !important;
+}
+
+.dark .el-table__row:hover>td {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+}
