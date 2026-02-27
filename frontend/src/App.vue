@@ -254,6 +254,16 @@ onMounted(() => {
       transferStore.updateProgress(data.id, data.transferred, data.total)
     }
   })
+  EventsOn('transfer-complete', (data: any) => {
+    if (data && data.id) {
+      transferStore.completeTask(data.id)
+    }
+  })
+  EventsOn('transfer-error', (data: any) => {
+    if (data && data.id) {
+      transferStore.failTask(data.id, data.error || '传输失败')
+    }
+  })
 })
 </script>
 

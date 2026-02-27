@@ -33,10 +33,14 @@ func (a *App) Startup(ctx context.Context) {
 // === Native File Dialogs ===
 
 // SelectFile 选择要上传的本地文件
-func (a *App) SelectFile() (string, error) {
-	return runtime.OpenFileDialog(a.ctx, runtime.OpenDialogOptions{
+func (a *App) SelectFile() ([]string, error) {
+	result, err := runtime.OpenMultipleFilesDialog(a.ctx, runtime.OpenDialogOptions{
 		Title: "选择文件上传",
 	})
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
 // SelectSaveFile 选择要保存的本地路径
@@ -147,6 +151,10 @@ func (a *App) ListObjects(connID string, location string, bucketName string, pre
 func (a *App) UploadFile(connID string, location string, bucketName string, objectKey string, localFilePath string, taskID string) (string, error) {
 	client, err := obs.NewClient(connID, location)
 	if err != nil {
+		runtime.EventsEmit(a.ctx, "transfer-error", map[string]interface{}{
+			"id":    taskID,
+			"error": err.Error(),
+		})
 		return "", err
 	}
 
@@ -160,8 +168,16 @@ func (a *App) UploadFile(connID string, location string, bucketName string, obje
 
 	err = client.UploadObject(bucketName, objectKey, localFilePath, progressFn)
 	if err != nil {
+		runtime.EventsEmit(a.ctx, "transfer-error", map[string]interface{}{
+			"id":    taskID,
+			"error": err.Error(),
+		})
 		return "", err
 	}
+
+	runtime.EventsEmit(a.ctx, "transfer-complete", map[string]interface{}{
+		"id": taskID,
+	})
 	return objectKey, nil
 }
 
@@ -169,6 +185,10 @@ func (a *App) UploadFile(connID string, location string, bucketName string, obje
 func (a *App) DownloadFile(connID string, location string, bucketName string, objectKey string, localFilePath string, taskID string) (string, error) {
 	client, err := obs.NewClient(connID, location)
 	if err != nil {
+		runtime.EventsEmit(a.ctx, "transfer-error", map[string]interface{}{
+			"id":    taskID,
+			"error": err.Error(),
+		})
 		return "", err
 	}
 
@@ -182,8 +202,16 @@ func (a *App) DownloadFile(connID string, location string, bucketName string, ob
 
 	err = client.DownloadObject(bucketName, objectKey, localFilePath, progressFn)
 	if err != nil {
+		runtime.EventsEmit(a.ctx, "transfer-error", map[string]interface{}{
+			"id":    taskID,
+			"error": err.Error(),
+		})
 		return "", err
 	}
+
+	runtime.EventsEmit(a.ctx, "transfer-complete", map[string]interface{}{
+		"id": taskID,
+	})
 	return objectKey, nil
 }
 
@@ -191,9 +219,34 @@ func (a *App) DownloadFile(connID string, location string, bucketName string, ob
 func (a *App) DownloadDirectory(connID string, location string, bucketName string, prefix string, localDir string, taskID string) error {
 	client, err := obs.NewClient(connID, location)
 	if err != nil {
+		runtime.EventsEmit(a.ctx, "transfer-error", map[string]interface{}{
+			"id":    taskID,
+			"error": err.Error(),
+		})
 		return err
 	}
-	return client.DownloadDirectory(bucketName, prefix, localDir)
+
+	progressFn := func(transferred int64, total int64) {
+		runtime.EventsEmit(a.ctx, "transfer-progress", map[string]interface{}{
+			"id":          taskID,
+			"transferred": transferred,
+			"total":       total,
+		})
+	}
+
+	err = client.DownloadDirectory(bucketName, prefix, localDir, progressFn)
+	if err != nil {
+		runtime.EventsEmit(a.ctx, "transfer-error", map[string]interface{}{
+			"id":    taskID,
+			"error": err.Error(),
+		})
+		return err
+	}
+
+	runtime.EventsEmit(a.ctx, "transfer-complete", map[string]interface{}{
+		"id": taskID,
+	})
+	return nil
 }
 
 // DeleteObject 删除对象

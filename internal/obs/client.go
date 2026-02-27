@@ -142,15 +142,29 @@ func (c *Client) UploadObject(bucketName, objectKey, localFilePath string, progr
 	input := &obsSDK.PutFileInput{}
 	input.Bucket = bucketName
 	input.Key = objectKey
-	input.SourceFile = localFilePath
+
+	// 清理文件路径，确保使用正确的路径分隔符
+	cleanPath := filepath.Clean(localFilePath)
+	input.SourceFile = cleanPath
+
+	// 检查文件是否存在
+	if _, err := os.Stat(cleanPath); os.IsNotExist(err) {
+		return fmt.Errorf("文件不存在: %s", cleanPath)
+	}
 
 	if progressFn != nil {
 		_, err := c.ObsClient.PutFile(input, obsSDK.WithProgress(&progressListener{fn: progressFn}))
-		return err
+		if err != nil {
+			return fmt.Errorf("上传失败: %w", err)
+		}
+		return nil
 	}
 
 	_, err := c.ObsClient.PutFile(input)
-	return err
+	if err != nil {
+		return fmt.Errorf("上传失败: %w", err)
+	}
+	return nil
 }
 
 // DownloadObject 下载对象
@@ -158,19 +172,34 @@ func (c *Client) DownloadObject(bucketName, objectKey, localFilePath string, pro
 	input := &obsSDK.DownloadFileInput{}
 	input.Bucket = bucketName
 	input.Key = objectKey
-	input.DownloadFile = localFilePath
+
+	// 清理文件路径，确保使用正确的路径分隔符
+	cleanPath := filepath.Clean(localFilePath)
+	input.DownloadFile = cleanPath
+
+	// 确保目标目录存在
+	dir := filepath.Dir(cleanPath)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return fmt.Errorf("创建目录失败: %w", err)
+	}
 
 	if progressFn != nil {
 		_, err := c.ObsClient.DownloadFile(input, obsSDK.WithProgress(&progressListener{fn: progressFn}))
-		return err
+		if err != nil {
+			return fmt.Errorf("下载失败: %w", err)
+		}
+		return nil
 	}
 
 	_, err := c.ObsClient.DownloadFile(input)
-	return err
+	if err != nil {
+		return fmt.Errorf("下载失败: %w", err)
+	}
+	return nil
 }
 
 // DownloadDirectory 递归下载目录
-func (c *Client) DownloadDirectory(bucketName, prefix, localDir string) error {
+func (c *Client) DownloadDirectory(bucketName, prefix, localDir string, progressFn func(int64, int64)) error {
 	// 提取文件夹名称（prefix 的最后一部分）
 	folderName := ""
 	trimmedPrefix := strings.TrimSuffix(prefix, "/")
@@ -195,6 +224,16 @@ func (c *Client) DownloadDirectory(bucketName, prefix, localDir string) error {
 		return err
 	}
 
+	// 计算总大小
+	var totalSize int64
+	for _, content := range output.Contents {
+		if !strings.HasSuffix(content.Key, "/") {
+			totalSize += content.Size
+		}
+	}
+
+	var downloadedSize int64
+
 	for _, content := range output.Contents {
 		// 过滤掉当前目录或子目录标记对象
 		if strings.HasSuffix(content.Key, "/") {
@@ -216,9 +255,22 @@ func (c *Client) DownloadDirectory(bucketName, prefix, localDir string) error {
 			return err
 		}
 
+		// 为文件夹下载创建包装进度回调
+		var fileProgressFn func(int64, int64)
+		if progressFn != nil {
+			fileProgressFn = func(fileTransferred int64, fileTotal int64) {
+				progressFn(downloadedSize+fileTransferred, totalSize)
+			}
+		}
+
 		// 下载文件
-		if err := c.DownloadObject(bucketName, content.Key, localFilePath, nil); err != nil {
+		if err := c.DownloadObject(bucketName, content.Key, localFilePath, fileProgressFn); err != nil {
 			return err
+		}
+
+		downloadedSize += content.Size
+		if progressFn != nil {
+			progressFn(downloadedSize, totalSize)
 		}
 	}
 

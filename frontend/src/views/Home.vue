@@ -398,8 +398,11 @@ const handleUpload = async () => {
     if (!filePaths || filePaths.length === 0) return
     
     isUploading.value = true
+    const uploadPromises = []
+    
     for (const localPath of filePaths) {
-      const fileName = localPath.split('\\').pop()?.split('/').pop() || 'upload.file'
+      // 使用更可靠的文件名提取方法
+      const fileName = localPath.replace(/\\/g, '/').split('/').pop() || 'upload.file'
       const objectKey = currentPrefix.value + fileName
       
       const taskID = `up-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
@@ -410,11 +413,11 @@ const handleUpload = async () => {
         size: 0 // Backend will report total size in first progress event
       })
 
-      await UploadFile(connId.value, currentLocation.value, currentBucket.value, objectKey, localPath, taskID)
-      transferStore.completeTask(taskID)
+      uploadPromises.push(UploadFile(connId.value, currentLocation.value, currentBucket.value, objectKey, localPath, taskID))
     }
     
-    ElMessage.success("上传成功")
+    await Promise.all(uploadPromises)
+    ElMessage.success("上传任务已提交")
     fetchObjects()
   } catch (e: any) {
     ElMessage.error("上传错误: " + (e.message || e))
@@ -439,8 +442,7 @@ const handleDownload = async (row: Content) => {
     })
 
     await DownloadFile(connId.value, currentLocation.value, currentBucket.value, row.Key, savePath, taskID)
-    transferStore.completeTask(taskID)
-    ElMessage.success("文件已成功下载到: " + savePath)
+    ElMessage.success("下载任务已提交")
   } catch (e: any) {
     ElMessage.error("下载出错: " + (e.message || e))
   }
@@ -469,6 +471,7 @@ const handleBatchDownload = async () => {
     if (!localDir) return
 
     ElMessage.info(`开始下载 ${selectedItems.value.length} 个项目...`)
+    const downloadPromises = []
     
     for (const item of selectedItems.value) {
       const taskID = `dl-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
@@ -480,8 +483,7 @@ const handleBatchDownload = async () => {
           type: 'download',
           size: 0
         })
-        await DownloadDirectory(connId.value, currentLocation.value, currentBucket.value, item.fullPath, localDir, taskID)
-        transferStore.completeTask(taskID)
+        downloadPromises.push(DownloadDirectory(connId.value, currentLocation.value, currentBucket.value, item.fullPath, localDir, taskID))
       } else {
         const fileName = item.Key.split('/').pop() || item.Key
         const localPath = `${localDir}${localDir.includes('\\') ? '\\' : '/'}${fileName}`
@@ -493,12 +495,12 @@ const handleBatchDownload = async () => {
           size: item.Size || 0
         })
         
-        await DownloadFile(connId.value, currentLocation.value, currentBucket.value, item.Key, localPath, taskID)
-        transferStore.completeTask(taskID)
+        downloadPromises.push(DownloadFile(connId.value, currentLocation.value, currentBucket.value, item.Key, localPath, taskID))
       }
     }
     
-    ElMessage.success("批量下载完成")
+    await Promise.all(downloadPromises)
+    ElMessage.success("批量下载任务已提交")
     clearSelection()
   } catch (e: any) {
     ElMessage.error("批量下载出错: " + (e.message || e))

@@ -30,7 +30,7 @@ export function MoveObject(arg1:string,arg2:string,arg3:string,arg4:string,arg5:
 
 export function SelectDirectory():Promise<string>;
 
-export function SelectFile():Promise<string>;
+export function SelectFile():Promise<Array<string>>;
 
 export function SelectSaveFile(arg1:string):Promise<string>;
 
