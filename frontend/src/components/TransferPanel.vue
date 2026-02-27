@@ -129,6 +129,10 @@ const getStatusClass = (status: string) => {
     default: return ''
   }
 }
+
+defineExpose({
+  visible
+})
 </script>
 
 <style scoped>

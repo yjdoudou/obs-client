@@ -147,20 +147,21 @@ func (c *Client) UploadObject(bucketName, objectKey, localFilePath string, progr
 	cleanPath := filepath.Clean(localFilePath)
 	input.SourceFile = cleanPath
 
-	// 检查文件是否存在
-	if _, err := os.Stat(cleanPath); os.IsNotExist(err) {
-		return fmt.Errorf("文件不存在: %s", cleanPath)
-	}
-
-	if progressFn != nil {
-		_, err := c.ObsClient.PutFile(input, obsSDK.WithProgress(&progressListener{fn: progressFn}))
-		if err != nil {
-			return fmt.Errorf("上传失败: %w", err)
+	// 检查文件是否存在并获取文件大小
+	fileInfo, err := os.Stat(cleanPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return fmt.Errorf("文件不存在: %s", cleanPath)
 		}
-		return nil
+		return fmt.Errorf("获取文件信息失败: %w", err)
 	}
 
-	_, err := c.ObsClient.PutFile(input)
+	// 如果有进度回调，先报告总大小
+	if progressFn != nil {
+		progressFn(0, fileInfo.Size())
+	}
+
+	_, err = c.ObsClient.PutFile(input, obsSDK.WithProgress(&progressListener{fn: progressFn}))
 	if err != nil {
 		return fmt.Errorf("上传失败: %w", err)
 	}
@@ -258,8 +259,10 @@ func (c *Client) DownloadDirectory(bucketName, prefix, localDir string, progress
 		// 为文件夹下载创建包装进度回调
 		var fileProgressFn func(int64, int64)
 		if progressFn != nil {
+			// 保存当前文件开始时的已下载大小
+			startSize := downloadedSize
 			fileProgressFn = func(fileTransferred int64, fileTotal int64) {
-				progressFn(downloadedSize+fileTransferred, totalSize)
+				progressFn(startSize+fileTransferred, totalSize)
 			}
 		}
 
@@ -268,10 +271,8 @@ func (c *Client) DownloadDirectory(bucketName, prefix, localDir string, progress
 			return err
 		}
 
+		// 文件下载完成后更新已下载大小
 		downloadedSize += content.Size
-		if progressFn != nil {
-			progressFn(downloadedSize, totalSize)
-		}
 	}
 
 	return nil

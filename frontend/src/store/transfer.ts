@@ -29,8 +29,21 @@ export const useTransferStore = defineStore('transfer', {
         updateProgress(id: string, transferred: number, total: number) {
             const task = this.tasks.find(t => t.id === id)
             if (task) {
+                // 更新已传输字节数
                 task.transferred = transferred
-                task.progress = Math.floor((transferred / total) * 100)
+                
+                // 如果任务的总大小为0且收到了有效的总大小，更新总大小
+                if (task.size === 0 && total > 0) {
+                    task.size = total
+                }
+                
+                // 计算进度百分比，避免除以零
+                if (total > 0) {
+                    task.progress = Math.floor((transferred / total) * 100)
+                } else {
+                    task.progress = 0
+                }
+                
                 task.status = 'transferring'
             }
         },
