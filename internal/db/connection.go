@@ -99,3 +99,23 @@ func GetConnectionStatus(id string) string {
 	}
 	return conn.Status
 }
+
+// ClearAllData 清除所有数据
+func ClearAllData() error {
+	// 获取所有模型
+	models := []interface{}{
+		&connection.Connection{},
+		&TransferTask{},
+		&OperationHistory{},
+	}
+
+	// 删除所有表
+	for _, model := range models {
+		if err := DB.Migrator().DropTable(model); err != nil {
+			return err
+		}
+	}
+
+	// 重新自动迁移以重建表结构
+	return DB.AutoMigrate(models...)
+}

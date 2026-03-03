@@ -3,6 +3,8 @@
 import {connection} from '../models';
 import {app} from '../models';
 
+export function ClearAppCache():Promise<boolean>;
+
 export function CopyObject(arg1:string,arg2:string,arg3:string,arg4:string,arg5:string,arg6:string):Promise<boolean>;
 
 export function CreateBucket(arg1:string,arg2:string,arg3:string):Promise<boolean>;

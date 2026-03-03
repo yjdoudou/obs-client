@@ -25,11 +25,19 @@
             <el-icon><component :is="isDark ? Sunny : Moon" /></el-icon>
           </button>
         </el-tooltip>
-        <el-tooltip content="设置" placement="bottom">
+        <el-dropdown trigger="click">
           <button class="w-8 h-8 rounded-full hover:bg-black/5 dark:hover:bg-white/10 flex items-center justify-center transition-colors">
             <el-icon><Setting /></el-icon>
           </button>
-        </el-tooltip>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item @click="handleClearCache" class="text-danger">
+                <el-icon><Delete /></el-icon>
+                <span>清除缓存</span>
+              </el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
         <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-primary to-blue-400 p-[1px] ml-1">
           <div class="w-full h-full rounded-full bg-bgCard flex items-center justify-center overflow-hidden">
              <el-icon size="16"><User /></el-icon>
@@ -178,7 +186,7 @@ import { ref, onMounted, computed, watch } from 'vue'
 import ConnectionDialog from './components/ConnectionDialog.vue'
 import TransferPanel from './components/TransferPanel.vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { GetConnections, DuplicateConnection, DeleteConnection } from '../wailsjs/go/app/App'
+import { GetConnections, DuplicateConnection, DeleteConnection, ClearAppCache } from '../wailsjs/go/app/App'
 import { useConnectionStore } from './store/connection'
 import { useTransferStore } from './store/transfer'
 import type { connection } from '../wailsjs/go/models'
@@ -298,6 +306,37 @@ const deleteConnection = async (id: string) => {
   } catch (err) {
     if (err !== 'cancel') {
       ElMessage.error('删除出错: ' + err)
+    }
+  }
+}
+
+const handleClearCache = async () => {
+  try {
+    await ElMessageBox.confirm(
+      '确定要清除所有缓存并重置应用吗？这将删除所有连接信息和历史记录，且不可恢复！',
+      '严重警告',
+      {
+        confirmButtonText: '确定重置',
+        cancelButtonText: '取消',
+        type: 'error',
+        confirmButtonClass: 'el-button--danger'
+      }
+    )
+    
+    const success = await ClearAppCache()
+    if (success) {
+      ElMessage.success('应用已成功重置')
+      // 重置各种 store 状态
+      connStore.setCurrentConnection('')
+      loadConnections()
+      // 如果有必要，可以强制刷新页面
+      // window.location.reload()
+    } else {
+      ElMessage.error('重置失败')
+    }
+  } catch (err) {
+    if (err !== 'cancel') {
+      ElMessage.error('重置出错: ' + err)
     }
   }
 }

@@ -368,3 +368,12 @@ func (a *App) MoveObject(connID string, location string, srcBucket string, srcKe
 	err = client.MoveObject(srcBucket, srcKey, dstBucket, dstKey)
 	return err == nil, err
 }
+
+// ClearAppCache 清除应用缓存（数据重置）
+func (a *App) ClearAppCache() (bool, error) {
+	err := db.ClearAllData()
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
