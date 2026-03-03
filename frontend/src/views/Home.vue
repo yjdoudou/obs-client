@@ -381,17 +381,20 @@ const fetchObjects = async () => {
 }
 
 const selectBucket = (bucketName: string, location: string = '') => {
+  if (currentBucket.value === bucketName && currentLocation.value === location) return
   loading.value = true
   connStore.setBucket(bucketName, location)
 }
 
 const goBackToPrefix = (prefix: string) => {
+  if (currentPrefix.value === prefix) return
   loading.value = true
   connStore.setPrefix(prefix)
 }
 
 const handleRowClick = (row: any) => {
   if (row.type === 'folder') {
+    if (currentPrefix.value === row.fullPath) return
     loading.value = true
     connStore.setPrefix(row.fullPath)
   }
