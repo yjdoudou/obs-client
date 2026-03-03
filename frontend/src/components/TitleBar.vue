@@ -1,22 +1,20 @@
 <template>
-  <div class="h-8 flex items-center justify-between bg-transparent select-none" style="--wails-drop-target: drag">
-    <div class="flex items-center gap-2 pl-4 pointer-events-none">
-      <div class="w-4 h-4 rounded-sm bg-primary/20 flex items-center justify-center">
-        <div class="w-2 h-2 rounded-[1px] bg-primary"></div>
-      </div>
-      <span class="text-[10px] font-bold tracking-widest text-textLight">OBS CLIENT</span>
+  <div class="h-8 flex items-center justify-between bg-transparent select-none drag z-50">
+    <div class="flex items-center gap-2 pl-3 pointer-events-none">
+      <img src="../assets/logo.png" class="w-4 h-4 object-contain shadow-sm" alt="logo" />
+      <span class="text-[10px] font-bold tracking-widest text-textLight opacity-80">OBS CLIENT</span>
     </div>
     
-    <div class="flex h-full no-drag" style="--wails-drop-target: none">
+    <div class="flex h-full no-drag">
       <div 
         @click="minimize" 
-        class="w-12 h-full flex items-center justify-center hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-default"
+        class="w-12 h-full flex items-center justify-center hover:bg-black/10 dark:hover:bg-white/10 transition-colors cursor-default"
       >
         <el-icon size="14"><SemiSelect /></el-icon>
       </div>
       <div 
         @click="toggleMaximize" 
-        class="w-12 h-full flex items-center justify-center hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-default"
+        class="w-12 h-full flex items-center justify-center hover:bg-black/10 dark:hover:bg-white/10 transition-colors cursor-default"
       >
         <el-icon size="12"><CopyDocument v-if="isMaximized" /><FullScreen v-else /></el-icon>
       </div>
@@ -53,7 +51,10 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+.drag {
+  --wails-draggable: drag;
+}
 .no-drag {
-  -webkit-app-region: no-drag;
+  --wails-draggable: no-drag;
 }
 </style>

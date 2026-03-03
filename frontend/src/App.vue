@@ -4,9 +4,11 @@
     <!-- Header Tool Bar -->
     <header class="h-14 glass flex items-center px-6 justify-between shrink-0 z-20 border-b border-black/5 dark:border-white/5 gap-4">
       <div class="flex items-center gap-4 shrink-0">
-        <div class="w-9 h-9 rounded-lg bg-primary flex items-center justify-center font-bold text-white shadow-lg shadow-primary/20 transform transition-transform hover:scale-105">
-          OBS
-        </div>
+        <img 
+          src="./assets/logo.png" 
+          class="w-9 h-9 rounded-lg shadow-lg shadow-primary/20 transform transition-transform hover:scale-105 object-contain"
+          alt="OBS Logo"
+        />
         <span class="font-bold text-lg tracking-tight whitespace-nowrap">Huawei OBS Client</span>
       </div>
       
