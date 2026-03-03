@@ -354,6 +354,9 @@ const fetchBuckets = async () => {
 
 const fetchObjects = async () => {
   if (!connId.value || !currentBucket.value) return
+  // Important: Clear current lists immediately to free up memory/reactivity processing
+  objects.value = []
+  folders.value = []
   loading.value = true
   
   // If location is missing but we have bucket, try to find it in the list
@@ -378,15 +381,18 @@ const fetchObjects = async () => {
 }
 
 const selectBucket = (bucketName: string, location: string = '') => {
+  loading.value = true
   connStore.setBucket(bucketName, location)
 }
 
 const goBackToPrefix = (prefix: string) => {
+  loading.value = true
   connStore.setPrefix(prefix)
 }
 
 const handleRowClick = (row: any) => {
   if (row.type === 'folder') {
+    loading.value = true
     connStore.setPrefix(row.fullPath)
   }
 }
