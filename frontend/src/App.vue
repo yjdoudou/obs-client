@@ -1,5 +1,6 @@
 <template>
-  <div class="h-screen w-screen flex flex-col bg-bgApp text-textMain overflow-hidden font-sans transition-colors duration-300">
+  <div class="h-screen w-screen flex flex-col bg-bgApp/60 dark:bg-bgApp/40 text-textMain overflow-hidden font-sans transition-colors duration-300 backdrop-blur-xl">
+    <TitleBar />
     <!-- Header Tool Bar -->
     <header class="h-14 glass flex items-center px-6 justify-between shrink-0 z-20 border-b border-black/5 dark:border-white/5 gap-4">
       <div class="flex items-center gap-4 shrink-0">
@@ -183,6 +184,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from 'vue'
+import TitleBar from './components/TitleBar.vue'
 import ConnectionDialog from './components/ConnectionDialog.vue'
 import TransferPanel from './components/TransferPanel.vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
