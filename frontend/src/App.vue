@@ -1,5 +1,5 @@
 <template>
-  <div class="h-screen w-screen flex flex-col bg-bgApp/60 dark:bg-bgApp/40 text-textMain overflow-hidden font-sans transition-colors duration-300 backdrop-blur-xl">
+  <div class="h-screen w-screen flex flex-col bg-bgApp/70 dark:bg-bgApp/50 text-textMain overflow-hidden font-sans transition-colors duration-300 backdrop-blur-xl">
     <TitleBar />
     <!-- Header Tool Bar -->
     <header class="h-14 glass flex items-center px-6 justify-between shrink-0 z-20 border-b border-black/5 dark:border-white/5 gap-4">

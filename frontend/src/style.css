@@ -4,21 +4,21 @@
 
 :root {
   --primary-color: #0066ff;
-  --bg-app: rgba(245, 247, 250, 0.4);
-  --bg-card: rgba(255, 255, 255, 0.7);
+  --bg-app: rgba(245, 247, 250, 0.6);
+  --bg-card: rgba(255, 255, 255, 0.8);
   --text-main: #333333;
   --text-light: #666666;
   --border-color: rgba(0, 0, 0, 0.08);
-  --glass-bg: rgba(255, 255, 255, 0.4);
+  --glass-bg: rgba(255, 255, 255, 0.6);
 }
 
 .dark {
-  --bg-app: rgba(18, 18, 18, 0.4);
-  --bg-card: rgba(30, 30, 30, 0.7);
+  --bg-app: rgba(18, 18, 18, 0.6);
+  --bg-card: rgba(30, 30, 30, 0.8);
   --text-main: #e0e0e0;
   --text-light: #888888;
   --border-color: rgba(255, 255, 255, 0.08);
-  --glass-bg: rgba(30, 30, 30, 0.4);
+  --glass-bg: rgba(30, 30, 30, 0.6);
 }
 
 html,

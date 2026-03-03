@@ -1,5 +1,5 @@
 <template>
-  <div class="h-8 flex items-center justify-between bg-white/20 dark:bg-black/20 backdrop-blur-md select-none drag z-50 border-b border-black/5 dark:border-white/5">
+  <div class="h-8 flex items-center justify-between glass bg-black/5 dark:bg-white/5 select-none drag z-50 border-none">
     <div class="flex items-center gap-2 pl-3 pointer-events-none">
       <img src="../assets/logo.png" class="w-4 h-4 object-contain" alt="logo" />
       <span class="text-[10px] font-bold tracking-widest text-textMain opacity-70">OBS CLIENT</span>
