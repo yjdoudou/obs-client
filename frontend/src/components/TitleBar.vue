@@ -1,26 +1,26 @@
 <template>
-  <div class="h-8 flex items-center justify-between bg-transparent select-none drag z-50">
+  <div class="h-8 flex items-center justify-between bg-white/20 dark:bg-black/20 backdrop-blur-md select-none drag z-50 border-b border-black/5 dark:border-white/5">
     <div class="flex items-center gap-2 pl-3 pointer-events-none">
-      <img src="../assets/logo.png" class="w-4 h-4 object-contain shadow-sm" alt="logo" />
-      <span class="text-[10px] font-bold tracking-widest text-textLight opacity-80">OBS CLIENT</span>
+      <img src="../assets/logo.png" class="w-4 h-4 object-contain" alt="logo" />
+      <span class="text-[10px] font-bold tracking-widest text-textMain opacity-70">OBS CLIENT</span>
     </div>
     
     <div class="flex h-full no-drag">
       <div 
         @click="minimize" 
-        class="w-12 h-full flex items-center justify-center hover:bg-black/10 dark:hover:bg-white/10 transition-colors cursor-default"
+        class="w-12 h-full flex items-center justify-center hover:bg-black/10 dark:hover:bg-white/10 transition-colors cursor-default text-textMain"
       >
         <el-icon size="14"><SemiSelect /></el-icon>
       </div>
       <div 
         @click="toggleMaximize" 
-        class="w-12 h-full flex items-center justify-center hover:bg-black/10 dark:hover:bg-white/10 transition-colors cursor-default"
+        class="w-12 h-full flex items-center justify-center hover:bg-black/10 dark:hover:bg-white/10 transition-colors cursor-default text-textMain"
       >
         <el-icon size="12"><CopyDocument v-if="isMaximized" /><FullScreen v-else /></el-icon>
       </div>
       <div 
         @click="close" 
-        class="w-12 h-full flex items-center justify-center hover:bg-red-500 hover:text-white transition-colors cursor-default"
+        class="w-12 h-full flex items-center justify-center hover:bg-red-500 hover:text-white dark:hover:bg-red-600 transition-colors cursor-default text-textMain"
       >
         <el-icon size="14"><Close /></el-icon>
       </div>
