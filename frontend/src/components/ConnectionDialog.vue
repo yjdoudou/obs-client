@@ -59,14 +59,14 @@ import { ref, reactive, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { TestConnection, CreateConnection, UpdateConnection } from '../../wailsjs/go/app/App'
-import { db } from '../../wailsjs/go/models'
+import { connection } from '../../wailsjs/go/models'
 import { MagicStick } from '@element-plus/icons-vue'
 
 const visible = defineModel<boolean>('visible', { default: false })
 const emit = defineEmits(['saved'])
 
 const props = defineProps<{
-  editData: db.Connection | null
+  editData: connection.Connection | null
 }>()
 
 const formRef = ref<FormInstance>()
@@ -115,7 +115,7 @@ const handleTest = async () => {
     if (valid) {
       testing.value = true
       try {
-        const conn = new db.Connection({
+        const conn = new connection.Connection({
           id: form.id,
           name: form.name,
           accessKeyId: form.accessKeyId,
@@ -141,7 +141,7 @@ const handleSave = async () => {
     if (valid) {
       saving.value = true
       try {
-        const conn = new db.Connection({
+        const conn = new connection.Connection({
           id: form.id,
           name: form.name,
           accessKeyId: form.accessKeyId,

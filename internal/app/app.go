@@ -3,16 +3,38 @@ package app
 import (
 	"context"
 	"fmt"
+	"obs-client/internal/connection"
 	"obs-client/internal/db"
 	"obs-client/internal/obs"
 
-	obsSDK "github.com/huaweicloud/huaweicloud-sdk-go-obs/obs"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
+// Bucket 桶结构镜像
+type Bucket struct {
+	Name         string `json:"Name"`
+	CreationDate string `json:"CreationDate"`
+	Location     string `json:"Location"`
+}
+
+// OBSObject 对象结构镜像
+type OBSObject struct {
+	Key          string `json:"Key"`
+	Size         int64  `json:"Size"`
+	LastModified string `json:"LastModified"`
+	StorageClass string `json:"StorageClass"`
+}
+
+// ListObjectsResponse 包含对象和公共前缀（文件夹）
+type ListObjectsResponse struct {
+	Objects []OBSObject `json:"objects"`
+	Folders []string    `json:"folders"`
+}
+
 // App struct
 type App struct {
-	ctx context.Context
+	ctx         context.Context
+	connManager *connection.Manager
 }
 
 // NewApp creates a new App application struct
@@ -28,6 +50,8 @@ func (a *App) Startup(ctx context.Context) {
 	if err := db.InitDB(); err != nil {
 		fmt.Printf("Failed to initialize database: %v\n", err)
 	}
+	// 初始化连接管理器
+	a.connManager = connection.NewManager(&db.DBConnector{})
 }
 
 // === Native File Dialogs ===
@@ -61,21 +85,21 @@ func (a *App) SelectDirectory() (string, error) {
 // === 连接管理方法 ===
 
 // GetConnections 获取连接列表
-func (a *App) GetConnections() ([]*db.Connection, error) {
-	return db.GetConnections()
+func (a *App) GetConnections() ([]*connection.Connection, error) {
+	return a.connManager.List()
 }
 
 // CreateConnection 创建连接
-func (a *App) CreateConnection(conn *db.Connection) (*db.Connection, error) {
-	if err := db.CreateConnection(conn); err != nil {
+func (a *App) CreateConnection(conn *connection.Connection) (*connection.Connection, error) {
+	if err := a.connManager.Save(conn); err != nil {
 		return nil, err
 	}
 	return conn, nil
 }
 
 // UpdateConnection 更新连接
-func (a *App) UpdateConnection(conn *db.Connection) (bool, error) {
-	if err := db.UpdateConnection(conn); err != nil {
+func (a *App) UpdateConnection(conn *connection.Connection) (bool, error) {
+	if err := a.connManager.Save(conn); err != nil {
 		return false, err
 	}
 	return true, nil
@@ -83,31 +107,60 @@ func (a *App) UpdateConnection(conn *db.Connection) (bool, error) {
 
 // DeleteConnection 删除连接
 func (a *App) DeleteConnection(id string) (bool, error) {
-	if err := db.DeleteConnection(id); err != nil {
+	if err := a.connManager.Delete(id); err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+// DuplicateConnection 复制连接
+func (a *App) DuplicateConnection(id string) (bool, error) {
+	if err := a.connManager.Duplicate(id); err != nil {
 		return false, err
 	}
 	return true, nil
 }
 
 // TestConnection 测试连接
-func (a *App) TestConnection(conn *db.Connection) (bool, error) {
+func (a *App) TestConnection(conn *connection.Connection) (bool, error) {
 	return obs.TestConnection(conn)
 }
 
 // === OBS 操作方法 ===
 
 // ListBuckets 获取桶列表
-func (a *App) ListBuckets(connID string) ([]obsSDK.Bucket, error) {
-	client, err := obs.NewClient(connID, "")
+func (a *App) ListBuckets(connID string) ([]Bucket, error) {
+	conn, err := a.connManager.Get(connID)
 	if err != nil {
 		return nil, err
 	}
-	return client.ListBuckets()
+	client, err := obs.NewClientFromConfig(conn, "")
+	if err != nil {
+		return nil, err
+	}
+	obsBuckets, err := client.ListBuckets()
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]Bucket, len(obsBuckets))
+	for i, b := range obsBuckets {
+		result[i] = Bucket{
+			Name:         b.Name,
+			CreationDate: b.CreationDate.String(),
+			Location:     b.Location,
+		}
+	}
+	return result, nil
 }
 
 // CreateBucket 创建桶
 func (a *App) CreateBucket(connID string, location string, bucketName string) (bool, error) {
-	client, err := obs.NewClient(connID, location)
+	conn, err := a.connManager.Get(connID)
+	if err != nil {
+		return false, err
+	}
+	client, err := obs.NewClientFromConfig(conn, location)
 	if err != nil {
 		return false, err
 	}
@@ -117,7 +170,11 @@ func (a *App) CreateBucket(connID string, location string, bucketName string) (b
 
 // DeleteBucket 删除桶
 func (a *App) DeleteBucket(connID string, location string, bucketName string) (bool, error) {
-	client, err := obs.NewClient(connID, location)
+	conn, err := a.connManager.Get(connID)
+	if err != nil {
+		return false, err
+	}
+	client, err := obs.NewClientFromConfig(conn, location)
 	if err != nil {
 		return false, err
 	}
@@ -125,15 +182,13 @@ func (a *App) DeleteBucket(connID string, location string, bucketName string) (b
 	return err == nil, err
 }
 
-// ListObjectsResponse 包含对象和公共前缀（文件夹）
-type ListObjectsResponse struct {
-	Objects []obsSDK.Content `json:"objects"`
-	Folders []string         `json:"folders"`
-}
-
 // ListObjects 获取对象列表
 func (a *App) ListObjects(connID string, location string, bucketName string, prefix string, delimiter string) (*ListObjectsResponse, error) {
-	client, err := obs.NewClient(connID, location)
+	conn, err := a.connManager.Get(connID)
+	if err != nil {
+		return nil, err
+	}
+	client, err := obs.NewClientFromConfig(conn, location)
 	if err != nil {
 		return nil, err
 	}
@@ -141,15 +196,30 @@ func (a *App) ListObjects(connID string, location string, bucketName string, pre
 	if err != nil {
 		return nil, err
 	}
+
+	objects := make([]OBSObject, len(contents))
+	for i, c := range contents {
+		objects[i] = OBSObject{
+			Key:          c.Key,
+			Size:         c.Size,
+			LastModified: c.LastModified.String(),
+			StorageClass: string(c.StorageClass),
+		}
+	}
+
 	return &ListObjectsResponse{
-		Objects: contents,
+		Objects: objects,
 		Folders: commonPrefixes,
 	}, nil
 }
 
 // UploadFile 上传文件
 func (a *App) UploadFile(connID string, location string, bucketName string, objectKey string, localFilePath string, taskID string) (string, error) {
-	client, err := obs.NewClient(connID, location)
+	conn, err := a.connManager.Get(connID)
+	if err != nil {
+		return "", err
+	}
+	client, err := obs.NewClientFromConfig(conn, location)
 	if err != nil {
 		runtime.EventsEmit(a.ctx, "transfer-error", map[string]interface{}{
 			"id":    taskID,
@@ -183,7 +253,11 @@ func (a *App) UploadFile(connID string, location string, bucketName string, obje
 
 // DownloadFile 下载文件
 func (a *App) DownloadFile(connID string, location string, bucketName string, objectKey string, localFilePath string, taskID string) (string, error) {
-	client, err := obs.NewClient(connID, location)
+	conn, err := a.connManager.Get(connID)
+	if err != nil {
+		return "", err
+	}
+	client, err := obs.NewClientFromConfig(conn, location)
 	if err != nil {
 		runtime.EventsEmit(a.ctx, "transfer-error", map[string]interface{}{
 			"id":    taskID,
@@ -217,7 +291,11 @@ func (a *App) DownloadFile(connID string, location string, bucketName string, ob
 
 // DownloadDirectory 递归下载整个目录
 func (a *App) DownloadDirectory(connID string, location string, bucketName string, prefix string, localDir string, taskID string) error {
-	client, err := obs.NewClient(connID, location)
+	conn, err := a.connManager.Get(connID)
+	if err != nil {
+		return err
+	}
+	client, err := obs.NewClientFromConfig(conn, location)
 	if err != nil {
 		runtime.EventsEmit(a.ctx, "transfer-error", map[string]interface{}{
 			"id":    taskID,
@@ -251,7 +329,11 @@ func (a *App) DownloadDirectory(connID string, location string, bucketName strin
 
 // DeleteObject 删除对象
 func (a *App) DeleteObject(connID string, location string, bucketName string, objectKey string) (bool, error) {
-	client, err := obs.NewClient(connID, location)
+	conn, err := a.connManager.Get(connID)
+	if err != nil {
+		return false, err
+	}
+	client, err := obs.NewClientFromConfig(conn, location)
 	if err != nil {
 		return false, err
 	}
@@ -261,7 +343,11 @@ func (a *App) DeleteObject(connID string, location string, bucketName string, ob
 
 // CopyObject 复制对象
 func (a *App) CopyObject(connID string, location string, srcBucket string, srcKey string, dstBucket string, dstKey string) (bool, error) {
-	client, err := obs.NewClient(connID, location)
+	conn, err := a.connManager.Get(connID)
+	if err != nil {
+		return false, err
+	}
+	client, err := obs.NewClientFromConfig(conn, location)
 	if err != nil {
 		return false, err
 	}
@@ -271,7 +357,11 @@ func (a *App) CopyObject(connID string, location string, srcBucket string, srcKe
 
 // MoveObject 移动对象
 func (a *App) MoveObject(connID string, location string, srcBucket string, srcKey string, dstBucket string, dstKey string) (bool, error) {
-	client, err := obs.NewClient(connID, location)
+	conn, err := a.connManager.Get(connID)
+	if err != nil {
+		return false, err
+	}
+	client, err := obs.NewClientFromConfig(conn, location)
 	if err != nil {
 		return false, err
 	}

@@ -71,12 +71,29 @@
             <el-icon class="mr-3 text-lg transition-colors" :class="activeConnId === conn.id ? 'text-primary' : 'text-textLight group-hover:text-primary'"><Link /></el-icon>
             <span class="truncate font-medium text-sm transition-transform group-hover:translate-x-1">{{ conn.name }}</span>
             
-            <button 
-              @click.stop="editConnection(conn)"
-              class="ml-auto opacity-0 group-hover:opacity-100 p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded transition-all"
-            >
-              <el-icon size="14"><Edit /></el-icon>
-            </button>
+            <div class="ml-auto flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
+              <button 
+                @click.stop="duplicateConnection(conn.id)"
+                class="p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded group/btn"
+                title="复制连接"
+              >
+                <el-icon size="14" class="group-hover/btn:text-primary"><CopyDocument /></el-icon>
+              </button>
+              <button 
+                @click.stop="editConnection(conn)"
+                class="p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded group/btn"
+                title="编辑连接"
+              >
+                <el-icon size="14" class="group-hover/btn:text-primary"><Edit /></el-icon>
+              </button>
+              <button 
+                @click.stop="deleteConnection(conn.id)"
+                class="p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded group/btn"
+                title="删除连接"
+              >
+                <el-icon size="14" class="group-hover/btn:text-danger"><Delete /></el-icon>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -160,20 +177,21 @@
 import { ref, onMounted, computed, watch } from 'vue'
 import ConnectionDialog from './components/ConnectionDialog.vue'
 import TransferPanel from './components/TransferPanel.vue'
-import { GetConnections } from '../wailsjs/go/app/App'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { GetConnections, DuplicateConnection, DeleteConnection } from '../wailsjs/go/app/App'
 import { useConnectionStore } from './store/connection'
 import { useTransferStore } from './store/transfer'
-import type { db } from '../wailsjs/go/models'
+import type { connection } from '../wailsjs/go/models'
 import { 
   Search, Setting, User, Plus, Link, Edit, 
   Download, ArrowLeft, ArrowRight, RefreshRight, 
-  FolderOpened, InfoFilled, Moon, Sunny 
+  FolderOpened, InfoFilled, Moon, Sunny, CopyDocument, Delete
 } from '@element-plus/icons-vue'
 import { EventsOn } from '../wailsjs/runtime/runtime'
 
 const showAddConnection = ref(false)
-const editingConn = ref<db.Connection | null>(null)
-const connections = ref<db.Connection[]>([])
+const editingConn = ref<connection.Connection | null>(null)
+const connections = ref<connection.Connection[]>([])
 const connStore = useConnectionStore()
 const transferStore = useTransferStore()
 const transferPanelRef = ref<any>(null)
@@ -223,7 +241,7 @@ const openAddDialog = () => {
   showAddConnection.value = true
 }
 
-const editConnection = (conn: db.Connection) => {
+const editConnection = (conn: connection.Connection) => {
   editingConn.value = conn
   showAddConnection.value = true
 }
@@ -239,6 +257,49 @@ const loadConnections = async () => {
 
 const selectConnection = (id: string) => {
   connStore.setCurrentConnection(id)
+}
+
+const duplicateConnection = async (id: string) => {
+  try {
+    const success = await DuplicateConnection(id)
+    if (success) {
+      ElMessage.success('复制成功')
+      loadConnections()
+    } else {
+      ElMessage.error('复制失败')
+    }
+  } catch (err) {
+    ElMessage.error('复制出错: ' + err)
+  }
+}
+
+const deleteConnection = async (id: string) => {
+  try {
+    await ElMessageBox.confirm(
+      '确定要删除该连接吗？此操作不可撤销。',
+      '删除确认',
+      {
+        confirmButtonText: '删除',
+        cancelButtonText: '取消',
+        type: 'warning',
+      }
+    )
+    
+    const success = await DeleteConnection(id)
+    if (success) {
+      ElMessage.success('删除成功')
+      if (connStore.activeConnectionId === id) {
+        connStore.setCurrentConnection('')
+      }
+      loadConnections()
+    } else {
+      ElMessage.error('删除失败')
+    }
+  } catch (err) {
+    if (err !== 'cancel') {
+      ElMessage.error('删除出错: ' + err)
+    }
+  }
 }
 
 const openTransferPanel = () => {

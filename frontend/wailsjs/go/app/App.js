@@ -34,6 +34,10 @@ export function DownloadFile(arg1, arg2, arg3, arg4, arg5, arg6) {
   return window['go']['app']['App']['DownloadFile'](arg1, arg2, arg3, arg4, arg5, arg6);
 }
 
+export function DuplicateConnection(arg1) {
+  return window['go']['app']['App']['DuplicateConnection'](arg1);
+}
+
 export function GetConnections() {
   return window['go']['app']['App']['GetConnections']();
 }

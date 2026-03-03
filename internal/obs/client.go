@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"obs-client/internal/db"
+	"obs-client/internal/connection"
 
 	obsSDK "github.com/huaweicloud/huaweicloud-sdk-go-obs/obs"
 )
@@ -16,19 +16,8 @@ type Client struct {
 	ObsClient *obsSDK.ObsClient
 }
 
-// NewClient 从数据库连接创建一个OBS客户端实例
-func NewClient(connID string, location string) (*Client, error) {
-	connStatus := db.GetConnectionStatus(connID)
-	if connStatus == "" {
-		return nil, fmt.Errorf("connection not found")
-	}
-
-	// 获取完整连接配置
-	var conn db.Connection
-	if err := db.DB.First(&conn, "id = ?", connID).Error; err != nil {
-		return nil, err
-	}
-
+// NewClientFromConfig 从连接配置创建一个OBS客户端实例
+func NewClientFromConfig(conn *connection.Connection, location string) (*Client, error) {
 	endpoint := conn.Endpoint
 	if endpoint == "" {
 		region := conn.Region
@@ -54,7 +43,7 @@ func NewClient(connID string, location string) (*Client, error) {
 }
 
 // TestConnection 测试给定的连接配置是否有效
-func TestConnection(conn *db.Connection) (bool, error) {
+func TestConnection(conn *connection.Connection) (bool, error) {
 	endpoint := conn.Endpoint
 	if endpoint == "" {
 		region := conn.Region

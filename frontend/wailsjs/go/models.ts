@@ -1,7 +1,41 @@
 export namespace app {
 	
+	export class Bucket {
+	    Name: string;
+	    CreationDate: string;
+	    Location: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new Bucket(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.Name = source["Name"];
+	        this.CreationDate = source["CreationDate"];
+	        this.Location = source["Location"];
+	    }
+	}
+	export class OBSObject {
+	    Key: string;
+	    Size: number;
+	    LastModified: string;
+	    StorageClass: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new OBSObject(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.Key = source["Key"];
+	        this.Size = source["Size"];
+	        this.LastModified = source["LastModified"];
+	        this.StorageClass = source["StorageClass"];
+	    }
+	}
 	export class ListObjectsResponse {
-	    objects: obs.Content[];
+	    objects: OBSObject[];
 	    folders: string[];
 	
 	    static createFrom(source: any = {}) {
@@ -10,7 +44,7 @@ export namespace app {
 	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.objects = this.convertValues(source["objects"], obs.Content);
+	        this.objects = this.convertValues(source["objects"], OBSObject);
 	        this.folders = source["folders"];
 	    }
 	
@@ -35,7 +69,7 @@ export namespace app {
 
 }
 
-export namespace db {
+export namespace connection {
 	
 	export class Connection {
 	    id: string;
