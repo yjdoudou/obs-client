@@ -1,17 +1,16 @@
 # <div align="center">
   <img src="frontend/src/assets/images/logo-universal.png" alt="OBS Client Logo" width="120" height="120">
-  
+
   # 华为 OBS 客户端工具
-  
+
   **一款现代化的华为云 OBS 对象存储管理工具**
-  
+
   [![Go Version](https://img.shields.io/badge/Go-1.21+-00ADD8?style=flat&logo=go)](https://golang.org/)
   [![Vue Version](https://img.shields.io/badge/Vue-3.0+-4FC08D?style=flat&logo=vue.js)](https://vuejs.org/)
   [![Wails](https://img.shields.io/badge/Wails-2.0+-3498db?style=flat)](https://wails.io/)
   [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
   [![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)](https://wails.io/docs/introduction/installation/windows)
-  
-  [English](README_EN.md) | 简体中文
+
 </div>
 
 ---
@@ -370,7 +369,6 @@ git push origin feature/your-feature-name
 
 如果您在使用过程中遇到任何问题或有任何建议，请通过以下方式反馈：
 
-- 📧 **邮件**：your.email@example.com
 - 🐛 **GitHub Issues**：[提交问题](https://github.com/yourusername/obs-client/issues)
 - 💬 **Discussions**：[参与讨论](https://github.com/yourusername/obs-client/discussions)
 
@@ -429,16 +427,7 @@ SOFTWARE.
 
 如果这个项目对您有帮助，请给我们一个 Star ⭐️
 
-[![Star History Chart](https://api.star-history.com/svg?repos=yourusername/obs-client&type=Date)](https://star-history.com/#yourusername/obs-client&Date)
-
----
-
-## <div align="center">📮 联系我们</div>
-
-- **作者**：Your Name
-- **邮箱**：your.email@example.com
-- **GitHub**：[https://github.com/yourusername](https://github.com/yourusername)
-- **项目主页**：[https://github.com/yourusername/obs-client](https://github.com/yourusername/obs-client)
+[![Star History Chart](https://api.star-history.com/svg?repos=yjdoudou/obs-client&type=Date)](https://star-history.com/#yourusername/obs-client&Date)
 
 ---
 
