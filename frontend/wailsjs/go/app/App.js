@@ -6,6 +6,10 @@ export function ClearAppCache() {
   return window['go']['app']['App']['ClearAppCache']();
 }
 
+export function ClearBackgroundImage(arg1) {
+  return window['go']['app']['App']['ClearBackgroundImage'](arg1);
+}
+
 export function CopyObject(arg1, arg2, arg3, arg4, arg5, arg6) {
   return window['go']['app']['App']['CopyObject'](arg1, arg2, arg3, arg4, arg5, arg6);
 }
@@ -42,8 +46,20 @@ export function DuplicateConnection(arg1) {
   return window['go']['app']['App']['DuplicateConnection'](arg1);
 }
 
+export function GetAllThemes() {
+  return window['go']['app']['App']['GetAllThemes']();
+}
+
+export function GetBackgroundInfo(arg1) {
+  return window['go']['app']['App']['GetBackgroundInfo'](arg1);
+}
+
 export function GetConnections() {
   return window['go']['app']['App']['GetConnections']();
+}
+
+export function GetCurrentTheme(arg1) {
+  return window['go']['app']['App']['GetCurrentTheme'](arg1);
 }
 
 export function ListBuckets(arg1) {
@@ -56,6 +72,18 @@ export function ListObjects(arg1, arg2, arg3, arg4, arg5) {
 
 export function MoveObject(arg1, arg2, arg3, arg4, arg5, arg6) {
   return window['go']['app']['App']['MoveObject'](arg1, arg2, arg3, arg4, arg5, arg6);
+}
+
+export function SaveBackgroundImage(arg1, arg2) {
+  return window['go']['app']['App']['SaveBackgroundImage'](arg1, arg2);
+}
+
+export function SaveOverlayOpacity(arg1, arg2) {
+  return window['go']['app']['App']['SaveOverlayOpacity'](arg1, arg2);
+}
+
+export function SaveTheme(arg1, arg2, arg3) {
+  return window['go']['app']['App']['SaveTheme'](arg1, arg2, arg3);
 }
 
 export function SelectDirectory() {

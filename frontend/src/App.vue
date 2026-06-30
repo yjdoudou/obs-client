@@ -1,14 +1,17 @@
 <template>
-  <div class="h-screen w-screen flex flex-col bg-bgApp/70 dark:bg-bgApp/50 text-textMain overflow-hidden font-sans transition-colors duration-300 backdrop-blur-xl">
-    <TitleBar />
-    <!-- Header Tool Bar -->
-    <header class="h-14 glass flex items-center px-6 justify-between shrink-0 z-20 border-b border-black/5 dark:border-white/5 gap-4">
-      <div class="flex items-center gap-4 shrink-0">
-        <img 
-          src="./assets/logo.png" 
-          class="w-9 h-9 rounded-lg shadow-lg shadow-primary/20 transform transition-transform hover:scale-105 object-contain"
-          alt="OBS Logo"
-        />
+  <div class="h-screen w-screen flex flex-col bg-bgApp text-textMain overflow-hidden font-sans transition-colors duration-300 theme-background relative">
+    <div id="app-background" class="fixed inset-0 z-0 bg-cover bg-center transition-opacity duration-300"></div>
+    <div id="app-overlay" class="fixed inset-0 z-[1] pointer-events-none transition-opacity duration-300"></div>
+    <div class="relative z-10 flex flex-col w-full h-full">
+      <TitleBar />
+      <!-- Header Tool Bar -->
+      <header class="h-14 glass flex items-center px-6 justify-between shrink-0 z-20 border-b border-black/5 dark:border-white/5 gap-4">
+        <div class="flex items-center gap-4 shrink-0">
+          <img 
+            src="./assets/logo.png" 
+            class="w-9 h-9 rounded-lg shadow-lg shadow-primary/20 transform transition-transform hover:scale-105 object-contain"
+            alt="OBS Logo"
+          />
         <span class="font-bold text-lg tracking-tight whitespace-nowrap">Huawei OBS Client</span>
       </div>
       
@@ -23,9 +26,9 @@
       </div>
 
       <div class="flex items-center gap-2 shrink-0">
-        <el-tooltip :content="isDark ? '切换亮色模式' : '切换暗色模式'" placement="bottom">
-          <button @click="connStore.toggleTheme" class="w-8 h-8 rounded-full hover:bg-black/5 dark:hover:bg-white/10 flex items-center justify-center transition-colors">
-            <el-icon><component :is="isDark ? Sunny : Moon" /></el-icon>
+        <el-tooltip content="选择皮肤" placement="bottom">
+          <button @click="showThemePanel = true" class="w-8 h-8 rounded-full hover:bg-black/5 dark:hover:bg-white/10 flex items-center justify-center transition-colors">
+            <el-icon><BrushFilled /></el-icon>
           </button>
         </el-tooltip>
         <el-dropdown trigger="click">
@@ -181,6 +184,18 @@
     
     <ConnectionDialog v-model:visible="showAddConnection" :edit-data="editingConn" @saved="loadConnections" />
     <TransferPanel ref="transferPanelRef" />
+    
+    <el-dialog 
+      v-model="showThemePanel" 
+      title="选择皮肤" 
+      width="400px" 
+      :close-on-click-modal="true"
+      :show-close="true"
+      class="theme-dialog"
+    >
+      <ThemePanel @close="showThemePanel = false" />
+    </el-dialog>
+    </div>
   </div>
 </template>
 
@@ -189,15 +204,17 @@ import { ref, onMounted, computed, watch } from 'vue'
 import TitleBar from './components/TitleBar.vue'
 import ConnectionDialog from './components/ConnectionDialog.vue'
 import TransferPanel from './components/TransferPanel.vue'
+import ThemePanel from './components/ThemePanel.vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { GetConnections, DuplicateConnection, DeleteConnection, ClearAppCache } from '../wailsjs/go/app/App'
 import { useConnectionStore } from './store/connection'
 import { useTransferStore } from './store/transfer'
+import { useThemeStore } from './store/theme'
 import type { connection } from '../wailsjs/go/models'
 import { 
   Search, Setting, User, Plus, Link, Edit, 
   Download, ArrowLeft, ArrowRight, RefreshRight, 
-  FolderOpened, InfoFilled, Moon, Sunny, CopyDocument, Delete
+  FolderOpened, InfoFilled, Moon, Sunny, CopyDocument, Delete, BrushFilled
 } from '@element-plus/icons-vue'
 import { EventsOn } from '../wailsjs/runtime/runtime'
 
@@ -206,9 +223,11 @@ const editingConn = ref<connection.Connection | null>(null)
 const connections = ref<connection.Connection[]>([])
 const connStore = useConnectionStore()
 const transferStore = useTransferStore()
+const themeStore = useThemeStore()
 const transferPanelRef = ref<any>(null)
 const activeConnId = computed(() => connStore.activeConnectionId)
-const isDark = computed(() => connStore.isDark)
+const isDark = computed(() => themeStore.isDark)
+const showThemePanel = ref(false)
 
 const editablePath = ref('')
 
@@ -353,6 +372,7 @@ const openTransferPanel = () => {
 
 onMounted(() => {
   loadConnections()
+  themeStore.loadThemes()
   EventsOn('transfer-progress', (data: any) => {
     if (data && data.id) {
       transferStore.updateProgress(data.id, data.transferred, data.total)

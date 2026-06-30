@@ -6,7 +6,6 @@ export const useConnectionStore = defineStore('connection', {
         currentBucket: '',
         currentLocation: '',
         currentPrefix: '',
-        isDark: localStorage.getItem('theme') === 'dark',
         searchKeyword: ''
     }),
     actions: {
@@ -32,20 +31,9 @@ export const useConnectionStore = defineStore('connection', {
             this.currentPrefix = prefix
         },
 
-        // Get formatted full path
         getFullPath() {
             if (!this.currentBucket) return 'root'
             return `${this.currentBucket}/${this.currentPrefix}`
-        },
-
-        toggleTheme() {
-            this.isDark = !this.isDark
-            localStorage.setItem('theme', this.isDark ? 'dark' : 'light')
-            if (this.isDark) {
-                document.documentElement.classList.add('dark')
-            } else {
-                document.documentElement.classList.remove('dark')
-            }
         }
     }
 })

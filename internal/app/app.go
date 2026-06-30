@@ -6,6 +6,7 @@ import (
 	"obs-client/internal/connection"
 	"obs-client/internal/db"
 	"obs-client/internal/obs"
+	"obs-client/internal/theme"
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
@@ -33,8 +34,9 @@ type ListObjectsResponse struct {
 
 // App struct
 type App struct {
-	ctx         context.Context
-	connManager *connection.Manager
+	ctx          context.Context
+	connManager  *connection.Manager
+	themeManager *theme.Manager
 }
 
 // NewApp creates a new App application struct
@@ -52,6 +54,8 @@ func (a *App) Startup(ctx context.Context) {
 	}
 	// 初始化连接管理器
 	a.connManager = connection.NewManager(&db.DBConnector{})
+	// 初始化主题管理器
+	a.themeManager = theme.NewManager(db.DB)
 }
 
 // === Native File Dialogs ===
@@ -373,6 +377,55 @@ func (a *App) MoveObject(connID string, location string, srcBucket string, srcKe
 func (a *App) ClearAppCache() (bool, error) {
 	err := db.ClearAllData()
 	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+// === 主题管理方法 ===
+
+// GetAllThemes 获取所有可用主题列表
+func (a *App) GetAllThemes() []theme.ThemeConfig {
+	return a.themeManager.GetAllThemes()
+}
+
+// GetCurrentTheme 获取当前用户主题
+func (a *App) GetCurrentTheme(userID string) (string, error) {
+	return a.themeManager.GetCurrentThemeJSON(userID)
+}
+
+// SaveTheme 设置用户主题
+func (a *App) SaveTheme(userID string, themeID string, isDark bool) (bool, error) {
+	if err := a.themeManager.SaveUserTheme(userID, themeID, isDark); err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+// SaveBackgroundImage 保存用户背景图片
+func (a *App) SaveBackgroundImage(userID string, base64Image string) (bool, error) {
+	if err := a.themeManager.SaveBackgroundImage(userID, base64Image); err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+// GetBackgroundInfo 获取用户背景信息
+func (a *App) GetBackgroundInfo(userID string) (theme.BackgroundInfo, error) {
+	return a.themeManager.GetBackgroundInfo(userID)
+}
+
+// SaveOverlayOpacity 保存遮罩透明度
+func (a *App) SaveOverlayOpacity(userID string, opacity float64) (bool, error) {
+	if err := a.themeManager.SaveOverlayOpacity(userID, opacity); err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+// ClearBackgroundImage 清除用户背景图片
+func (a *App) ClearBackgroundImage(userID string) (bool, error) {
+	if err := a.themeManager.ClearBackgroundImage(userID); err != nil {
 		return false, err
 	}
 	return true, nil

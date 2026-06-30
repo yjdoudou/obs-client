@@ -124,3 +124,46 @@ export namespace connection {
 
 }
 
+export namespace theme {
+	
+	export class BackgroundInfo {
+	    imageBase64: string;
+	    opacity: number;
+	    hasImage: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new BackgroundInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.imageBase64 = source["imageBase64"];
+	        this.opacity = source["opacity"];
+	        this.hasImage = source["hasImage"];
+	    }
+	}
+	export class ThemeConfig {
+	    id: string;
+	    name: string;
+	    description: string;
+	    preview: string;
+	    glassEnabled: boolean;
+	    variables: {[key: string]: any};
+	
+	    static createFrom(source: any = {}) {
+	        return new ThemeConfig(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.name = source["name"];
+	        this.description = source["description"];
+	        this.preview = source["preview"];
+	        this.glassEnabled = source["glassEnabled"];
+	        this.variables = source["variables"];
+	    }
+	}
+
+}
+

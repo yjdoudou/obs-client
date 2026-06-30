@@ -14,8 +14,14 @@ import (
 
 var DB *gorm.DB
 
+var registeredModels []interface{}
+
 // DBConnector 实现 connection.Storage 接口
 type DBConnector struct{}
+
+func RegisterModel(model interface{}) {
+	registeredModels = append(registeredModels, model)
+}
 
 func (d *DBConnector) GetConnections() ([]*connection.Connection, error) {
 	return GetConnections()
@@ -55,7 +61,7 @@ func InitDB() error {
 		return err
 	}
 
-	err = database.AutoMigrate(&connection.Connection{}, &TransferTask{}, &OperationHistory{})
+	err = database.AutoMigrate(append([]interface{}{&connection.Connection{}, &TransferTask{}, &OperationHistory{}}, registeredModels...)...)
 	if err != nil {
 		log.Printf("Failed to auto migrate database: %v", err)
 		return err

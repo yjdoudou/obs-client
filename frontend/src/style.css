@@ -10,15 +10,46 @@
   --text-light: #666666;
   --border-color: rgba(0, 0, 0, 0.08);
   --glass-bg: rgba(255, 255, 255, 0.6);
+  --bg-overlay-opacity: 0.5;
+
+  --el-color-primary: #0066ff;
+  --el-text-color-primary: #333333;
+  --el-text-color-regular: #666666;
+  --el-bg-color-page: rgba(245, 247, 250, 0.6);
+  --el-bg-color: rgba(255, 255, 255, 0.8);
+  --el-border-color: rgba(0, 0, 0, 0.08);
+  --el-border-color-light: rgba(0, 0, 0, 0.08);
 }
 
-.dark {
-  --bg-app: rgba(18, 18, 18, 0.6);
-  --bg-card: rgba(30, 30, 30, 0.8);
-  --text-main: #e0e0e0;
-  --text-light: #888888;
-  --border-color: rgba(255, 255, 255, 0.08);
-  --glass-bg: rgba(30, 30, 30, 0.6);
+.theme-background {
+  background-color: var(--bg-app);
+}
+
+.glass-mode .theme-background {
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.has-background .theme-background {
+  background-color: transparent !important;
+}
+
+#app-background {
+  display: none;
+}
+
+.has-background #app-background {
+  display: block;
+}
+
+#app-overlay {
+  display: none;
+}
+
+.has-background #app-overlay {
+  display: block;
+  background-color: var(--bg-app);
+  opacity: var(--bg-overlay-opacity);
 }
 
 html,
@@ -39,15 +70,17 @@ body,
   flex-direction: column;
 }
 
-/* Glassmorphism utility */
 .glass {
   background: var(--glass-bg);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
   border: 1px solid var(--border-color);
+  transition: all 0.3s;
 }
 
-/* Custom Scrollbar */
+.glass-mode .glass {
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -74,11 +107,13 @@ body,
   background: rgba(255, 255, 255, 0.3);
 }
 
-/* Element Plus Theme Overrides */
 .el-dialog {
   background: var(--bg-card) !important;
   border-radius: 12px !important;
   border: 1px solid var(--border-color) !important;
+}
+
+.glass-mode .el-dialog {
   backdrop-filter: blur(10px);
 }
 
@@ -121,4 +156,65 @@ body,
 
 .dark .el-table__row:hover>td {
   background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+.el-dropdown-menu {
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border-color) !important;
+}
+
+.el-dropdown-menu__item {
+  color: var(--text-main) !important;
+}
+
+.el-dropdown-menu__item:hover {
+  background-color: rgba(0, 0, 0, 0.02) !important;
+}
+
+.dark .el-dropdown-menu__item:hover {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+.el-message-box {
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border-color) !important;
+}
+
+.el-message-box__title {
+  color: var(--text-main) !important;
+}
+
+.el-message-box__message {
+  color: var(--text-main) !important;
+}
+
+.el-tooltip__popper {
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border-color) !important;
+}
+
+.el-tooltip__popper .el-tooltip__arrow::before {
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border-color) !important;
+}
+
+.el-tooltip__popper.is-dark {
+  background: var(--bg-card) !important;
+}
+
+.el-tooltip__popper.is-dark .el-tooltip__arrow::before {
+  background: var(--bg-card) !important;
+}
+
+.el-message {
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border-color) !important;
+}
+
+.el-message__content {
+  color: var(--text-main) !important;
+}
+
+.el-form-item__label {
+  color: var(--text-light) !important;
 }
