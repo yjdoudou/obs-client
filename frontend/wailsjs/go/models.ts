@@ -66,6 +66,25 @@ export namespace app {
 		    return a;
 		}
 	}
+	
+	export class PreviewFileResponse {
+	    content: string;
+	    contentType: string;
+	    fileName: string;
+	    size: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new PreviewFileResponse(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.content = source["content"];
+	        this.contentType = source["contentType"];
+	        this.fileName = source["fileName"];
+	        this.size = source["size"];
+	    }
+	}
 
 }
 

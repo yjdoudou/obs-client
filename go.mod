@@ -3,6 +3,7 @@ module obs-client
 go 1.18
 
 require (
+	github.com/fsnotify/fsnotify v1.7.0
 	github.com/glebarez/sqlite v1.11.0
 	github.com/google/uuid v1.3.0
 	github.com/huaweicloud/huaweicloud-sdk-go-obs v3.25.9+incompatible
@@ -36,7 +37,7 @@ require (
 	golang.org/x/crypto v0.1.0 // indirect
 	golang.org/x/exp v0.0.0-20220303212507-bbda1eaf7a17 // indirect
 	golang.org/x/net v0.7.0 // indirect
-	golang.org/x/sys v0.7.0 // indirect
+	golang.org/x/sys v0.13.0 // indirect
 	golang.org/x/text v0.20.0 // indirect
 	modernc.org/libc v1.22.5 // indirect
 	modernc.org/mathutil v1.5.0 // indirect

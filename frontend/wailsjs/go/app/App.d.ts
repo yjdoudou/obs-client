@@ -3,6 +3,7 @@
 import {connection} from '../models';
 import {theme} from '../models';
 import {app} from '../models';
+import {context} from '../models';
 
 export function ClearAppCache():Promise<boolean>;
 
@@ -26,6 +27,8 @@ export function DownloadFile(arg1:string,arg2:string,arg3:string,arg4:string,arg
 
 export function DuplicateConnection(arg1:string):Promise<boolean>;
 
+export function EditFile(arg1:string,arg2:string,arg3:string,arg4:string):Promise<string>;
+
 export function GetAllThemes():Promise<Array<theme.ThemeConfig>>;
 
 export function GetBackgroundInfo(arg1:string):Promise<theme.BackgroundInfo>;
@@ -40,6 +43,8 @@ export function ListObjects(arg1:string,arg2:string,arg3:string,arg4:string,arg5
 
 export function MoveObject(arg1:string,arg2:string,arg3:string,arg4:string,arg5:string,arg6:string):Promise<boolean>;
 
+export function PreviewFile(arg1:string,arg2:string,arg3:string,arg4:string):Promise<app.PreviewFileResponse>;
+
 export function SaveBackgroundImage(arg1:string,arg2:string):Promise<boolean>;
 
 export function SaveOverlayOpacity(arg1:string,arg2:number):Promise<boolean>;
@@ -51,6 +56,8 @@ export function SelectDirectory():Promise<string>;
 export function SelectFile():Promise<Array<string>>;
 
 export function SelectSaveFile(arg1:string):Promise<string>;
+
+export function Shutdown(arg1:context.Context):Promise<void>;
 
 export function TestConnection(arg1:connection.Connection):Promise<boolean>;
 

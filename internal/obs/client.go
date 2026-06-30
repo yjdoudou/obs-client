@@ -2,6 +2,7 @@ package obs
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -296,6 +297,31 @@ func (c *Client) MoveObject(srcBucket, srcKey, dstBucket, dstKey string) error {
 		return err
 	}
 	return c.DeleteObject(srcBucket, srcKey)
+}
+
+// GetObjectContent 获取对象内容为字节数组和Content-Type
+func (c *Client) GetObjectContent(bucketName, objectKey string) ([]byte, string, error) {
+	input := &obsSDK.GetObjectInput{}
+	input.Bucket = bucketName
+	input.Key = objectKey
+
+	output, err := c.ObsClient.GetObject(input)
+	if err != nil {
+		return nil, "", err
+	}
+	defer output.Body.Close()
+
+	content, err := io.ReadAll(output.Body)
+	if err != nil {
+		return nil, "", err
+	}
+
+	contentType := output.ContentType
+	if contentType == "" {
+		contentType = "application/octet-stream"
+	}
+
+	return content, contentType, nil
 }
 
 // 虚拟文件夹相关结构

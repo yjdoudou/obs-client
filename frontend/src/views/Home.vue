@@ -151,10 +151,15 @@
               </template>
             </el-table-column>
             
-            <el-table-column label="操作" width="140" align="right">
-               <template #default="{ row }">
+            <el-table-column label="操作" width="160" align="right">
+              <template #default="{ row }">
                 <div class="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                   <template v-if="row.type === 'file'">
+                    <el-tooltip content="编辑" placement="top">
+                      <button class="action-btn text-blue-500 hover:bg-blue-500/10 dark:hover:bg-blue-500/20" @click.stop="handleEdit(row)">
+                        <el-icon><Edit /></el-icon>
+                      </button>
+                    </el-tooltip>
                     <el-tooltip content="下载" placement="top">
                       <button class="action-btn text-primary hover:bg-primary/10 dark:hover:bg-primary/20" @click.stop="handleDownload(row)">
                         <el-icon><Download /></el-icon>
@@ -200,6 +205,17 @@
         </div>
       </div>
     </div>
+    
+    <FilePreview 
+      v-if="previewFile"
+      v-model:visible="showPreview"
+      :conn-id="previewFile.connId"
+      :location="previewFile.location"
+      :bucket-name="previewFile.bucketName"
+      :object-key="previewFile.objectKey"
+      :file-name="previewFile.fileName"
+      @download="handlePreviewDownload"
+    />
   </div>
 </template>
 
@@ -211,14 +227,15 @@ import { storeToRefs } from 'pinia'
 import { 
   ListBuckets, ListObjects, UploadFile, DownloadFile, 
   DeleteObject, SelectFile, SelectSaveFile,
-  SelectDirectory, DownloadDirectory 
+  SelectDirectory, DownloadDirectory, EditFile
 } from '../../wailsjs/go/app/App'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { 
   Cloudy, Menu, ArrowRight, Coin, Upload, 
   Refresh, Right, Document, Download, Delete, Folder,
-  Picture, VideoCamera, Headset, Box, Tickets
+  Picture, VideoCamera, Headset, Box, Tickets, View
 } from '@element-plus/icons-vue'
+import FilePreview from '../components/FilePreview.vue'
 
 interface Bucket { Name: string; CreationDate: string; Location: string }
 interface Content { Key: string; Size: number; LastModified: string; StorageClass: string }
@@ -241,6 +258,15 @@ const objects = ref<Content[]>([])
 const folders = ref<string[]>([])
 const selectedItems = ref<any[]>([])
 const tableRef = ref<any>(null)
+
+const showPreview = ref(false)
+const previewFile = ref<{
+  connId: string
+  location: string
+  bucketName: string
+  objectKey: string
+  fileName: string
+} | null>(null)
 
 const handleSelectionChange = (val: any[]) => {
   selectedItems.value = val
@@ -397,6 +423,59 @@ const handleRowClick = (row: any) => {
     if (currentPrefix.value === row.fullPath) return
     loading.value = true
     connStore.setPrefix(row.fullPath)
+  } else {
+    const now = Date.now()
+    const lastClick = (row as any)._lastClickTime || 0
+    if (now - lastClick < 300) {
+      handlePreview(row)
+    }
+    ;(row as any)._lastClickTime = now
+  }
+}
+
+const handlePreview = (row: Content) => {
+  if (!connId.value || !currentBucket.value) return
+  
+  const fileName = row.Key.split('/').pop() || row.Key
+  previewFile.value = {
+    connId: connId.value,
+    location: currentLocation.value,
+    bucketName: currentBucket.value,
+    objectKey: row.Key,
+    fileName
+  }
+  showPreview.value = true
+}
+
+const handleEdit = async (row: Content) => {
+  if (!connId.value || !currentBucket.value) return
+  
+  try {
+    const result = await EditFile(connId.value, currentLocation.value, currentBucket.value, row.Key)
+    ElMessage.success(result)
+  } catch (error: any) {
+    ElMessage.error('编辑文件失败: ' + (error.message || '未知错误'))
+  }
+}
+
+const handlePreviewDownload = async (data: { objectKey: string; fileName: string }) => {
+  if (!connId.value || !currentBucket.value) return
+  try {
+    const savePath = await SelectSaveFile(data.fileName)
+    if (!savePath) return 
+    
+    const taskID = `dl-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+    transferStore.addTask({
+      id: taskID,
+      name: data.fileName,
+      type: 'download',
+      size: 0
+    })
+
+    await DownloadFile(connId.value, currentLocation.value, currentBucket.value, data.objectKey, savePath, taskID)
+    ElMessage.success("下载任务已提交")
+  } catch (e: any) {
+    ElMessage.error("下载出错: " + (e.message || e))
   }
 }
 

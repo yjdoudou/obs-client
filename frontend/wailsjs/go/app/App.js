@@ -46,6 +46,10 @@ export function DuplicateConnection(arg1) {
   return window['go']['app']['App']['DuplicateConnection'](arg1);
 }
 
+export function EditFile(arg1, arg2, arg3, arg4) {
+  return window['go']['app']['App']['EditFile'](arg1, arg2, arg3, arg4);
+}
+
 export function GetAllThemes() {
   return window['go']['app']['App']['GetAllThemes']();
 }
@@ -74,6 +78,10 @@ export function MoveObject(arg1, arg2, arg3, arg4, arg5, arg6) {
   return window['go']['app']['App']['MoveObject'](arg1, arg2, arg3, arg4, arg5, arg6);
 }
 
+export function PreviewFile(arg1, arg2, arg3, arg4) {
+  return window['go']['app']['App']['PreviewFile'](arg1, arg2, arg3, arg4);
+}
+
 export function SaveBackgroundImage(arg1, arg2) {
   return window['go']['app']['App']['SaveBackgroundImage'](arg1, arg2);
 }
@@ -96,6 +104,10 @@ export function SelectFile() {
 
 export function SelectSaveFile(arg1) {
   return window['go']['app']['App']['SelectSaveFile'](arg1);
+}
+
+export function Shutdown(arg1) {
+  return window['go']['app']['App']['Shutdown'](arg1);
 }
 
 export function TestConnection(arg1) {
