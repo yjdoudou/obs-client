@@ -106,10 +106,6 @@ export function SelectSaveFile(arg1) {
   return window['go']['app']['App']['SelectSaveFile'](arg1);
 }
 
-export function Shutdown(arg1) {
-  return window['go']['app']['App']['Shutdown'](arg1);
-}
-
 export function TestConnection(arg1) {
   return window['go']['app']['App']['TestConnection'](arg1);
 }

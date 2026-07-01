@@ -3,7 +3,6 @@
 import {connection} from '../models';
 import {theme} from '../models';
 import {app} from '../models';
-import {context} from '../models';
 
 export function ClearAppCache():Promise<boolean>;
 
@@ -56,8 +55,6 @@ export function SelectDirectory():Promise<string>;
 export function SelectFile():Promise<Array<string>>;
 
 export function SelectSaveFile(arg1:string):Promise<string>;
-
-export function Shutdown(arg1:context.Context):Promise<void>;
 
 export function TestConnection(arg1:connection.Connection):Promise<boolean>;
 
