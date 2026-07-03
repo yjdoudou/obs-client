@@ -5,7 +5,7 @@
 #define MyAppPublisher "OBS Client"
 #define MyAppExeName "obs-client.exe"
 #define MyAppIcon "..\icon.ico"
-#define SourceDir "..\..\bin\standalone"
+#define SourceDir "..\..\bin"
 
 [Setup]
 AppId={{OBS-CLIENT-APP-GUID}}
