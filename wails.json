@@ -9,5 +9,9 @@
   "author": {
     "name": "",
     "email": ""
+  },
+  "installer": {
+    "enabled": true,
+    "script": "build/windows/installer/installer.iss"
   }
 }
