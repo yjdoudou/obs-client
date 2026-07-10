@@ -12,6 +12,16 @@
         <el-form-item label="连接名称" prop="name">
           <el-input v-model="form.name" placeholder="例如: 我的华为云" class="modern-input" />
         </el-form-item>
+
+        <el-form-item label="存储提供商" prop="provider">
+          <el-select v-model="form.provider" placeholder="请选择存储提供商" class="modern-input">
+            <el-option label="华为云 OBS" value="huawei" />
+            <el-option label="腾讯云 COS" value="tencent" />
+            <el-option label="阿里云 OSS" value="alibaba" />
+            <el-option label="百度云 BOS" value="baidu" />
+            <el-option label="MinIO" value="minio" />
+          </el-select>
+        </el-form-item>
         
         <div class="grid grid-cols-2 gap-4">
           <el-form-item label="Access Key (AK)" prop="accessKeyId">
@@ -77,6 +87,7 @@ const isEdit = ref(false)
 const form = reactive({
   id: '',
   name: '',
+  provider: 'huawei',
   accessKeyId: '',
   secretAccessKey: '',
   region: '',
@@ -85,6 +96,7 @@ const form = reactive({
 
 const rules = reactive<FormRules>({
   name: [{ required: true, message: '请输入连接名称', trigger: 'blur' }],
+  provider: [{ required: true, message: '请选择存储提供商', trigger: 'change' }],
   accessKeyId: [{ required: true, message: '请输入 Access Key', trigger: 'blur' }],
   secretAccessKey: [{ required: true, message: '请输入 Secret Key', trigger: 'blur' }],
 })
@@ -94,6 +106,7 @@ watch(() => props.editData, (val) => {
     isEdit.value = true
     form.id = val.id
     form.name = val.name
+    form.provider = val.provider || 'huawei'
     form.accessKeyId = val.accessKeyId
     form.secretAccessKey = val.secretAccessKey
     form.region = val.region
@@ -102,6 +115,7 @@ watch(() => props.editData, (val) => {
     isEdit.value = false
     form.id = ''
     form.name = ''
+    form.provider = 'huawei'
     form.accessKeyId = ''
     form.secretAccessKey = ''
     form.region = ''
@@ -118,6 +132,7 @@ const handleTest = async () => {
         const conn = new connection.Connection({
           id: form.id,
           name: form.name,
+          provider: form.provider,
           accessKeyId: form.accessKeyId,
           secretAccessKey: form.secretAccessKey,
           region: form.region,
@@ -144,6 +159,7 @@ const handleSave = async () => {
         const conn = new connection.Connection({
           id: form.id,
           name: form.name,
+          provider: form.provider,
           accessKeyId: form.accessKeyId,
           secretAccessKey: form.secretAccessKey,
           region: form.region,

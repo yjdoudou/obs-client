@@ -6,7 +6,8 @@ import (
 	"fmt"
 	"obs-client/internal/connection"
 	"obs-client/internal/db"
-	"obs-client/internal/obs"
+	"obs-client/internal/storage"
+	_ "obs-client/internal/storage/huawei"
 	"obs-client/internal/theme"
 	"os"
 	"os/exec"
@@ -19,14 +20,12 @@ import (
 	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
-// Bucket 桶结构镜像
 type Bucket struct {
 	Name         string `json:"Name"`
 	CreationDate string `json:"CreationDate"`
 	Location     string `json:"Location"`
 }
 
-// OBSObject 对象结构镜像
 type OBSObject struct {
 	Key          string `json:"Key"`
 	Size         int64  `json:"Size"`
@@ -34,13 +33,11 @@ type OBSObject struct {
 	StorageClass string `json:"StorageClass"`
 }
 
-// ListObjectsResponse 包含对象和公共前缀（文件夹）
 type ListObjectsResponse struct {
 	Objects []OBSObject `json:"objects"`
 	Folders []string    `json:"folders"`
 }
 
-// PreviewFileResponse 文件预览响应
 type PreviewFileResponse struct {
 	Content     string `json:"content"`
 	ContentType string `json:"contentType"`
@@ -48,35 +45,25 @@ type PreviewFileResponse struct {
 	Size        int64  `json:"size"`
 }
 
-// App struct
 type App struct {
 	ctx          context.Context
 	connManager  *connection.Manager
 	themeManager *theme.Manager
 }
 
-// NewApp creates a new App application struct
 func NewApp() *App {
 	return &App{}
 }
 
-// Startup is called when the app starts. The context is saved
-// so we can call the runtime methods
 func (a *App) Startup(ctx context.Context) {
 	a.ctx = ctx
-	// 初始化数据库
 	if err := db.InitDB(); err != nil {
 		fmt.Printf("Failed to initialize database: %v\n", err)
 	}
-	// 初始化连接管理器
 	a.connManager = connection.NewManager(&db.DBConnector{})
-	// 初始化主题管理器
 	a.themeManager = theme.NewManager(db.DB)
 }
 
-// === Native File Dialogs ===
-
-// SelectFile 选择要上传的本地文件
 func (a *App) SelectFile() ([]string, error) {
 	result, err := wailsRuntime.OpenMultipleFilesDialog(a.ctx, wailsRuntime.OpenDialogOptions{
 		Title: "选择文件上传",
@@ -87,7 +74,6 @@ func (a *App) SelectFile() ([]string, error) {
 	return result, nil
 }
 
-// SelectSaveFile 选择要保存的本地路径
 func (a *App) SelectSaveFile(defaultName string) (string, error) {
 	return wailsRuntime.SaveFileDialog(a.ctx, wailsRuntime.SaveDialogOptions{
 		Title:           "下载文件为...",
@@ -95,21 +81,16 @@ func (a *App) SelectSaveFile(defaultName string) (string, error) {
 	})
 }
 
-// SelectDirectory 选择要下载到的本地目录
 func (a *App) SelectDirectory() (string, error) {
 	return wailsRuntime.OpenDirectoryDialog(a.ctx, wailsRuntime.OpenDialogOptions{
 		Title: "选择下载到的本地目录",
 	})
 }
 
-// === 连接管理方法 ===
-
-// GetConnections 获取连接列表
 func (a *App) GetConnections() ([]*connection.Connection, error) {
 	return a.connManager.List()
 }
 
-// CreateConnection 创建连接
 func (a *App) CreateConnection(conn *connection.Connection) (*connection.Connection, error) {
 	if err := a.connManager.Save(conn); err != nil {
 		return nil, err
@@ -117,7 +98,6 @@ func (a *App) CreateConnection(conn *connection.Connection) (*connection.Connect
 	return conn, nil
 }
 
-// UpdateConnection 更新连接
 func (a *App) UpdateConnection(conn *connection.Connection) (bool, error) {
 	if err := a.connManager.Save(conn); err != nil {
 		return false, err
@@ -125,7 +105,6 @@ func (a *App) UpdateConnection(conn *connection.Connection) (bool, error) {
 	return true, nil
 }
 
-// DeleteConnection 删除连接
 func (a *App) DeleteConnection(id string) (bool, error) {
 	if err := a.connManager.Delete(id); err != nil {
 		return false, err
@@ -133,7 +112,6 @@ func (a *App) DeleteConnection(id string) (bool, error) {
 	return true, nil
 }
 
-// DuplicateConnection 复制连接
 func (a *App) DuplicateConnection(id string) (bool, error) {
 	if err := a.connManager.Duplicate(id); err != nil {
 		return false, err
@@ -141,105 +119,98 @@ func (a *App) DuplicateConnection(id string) (bool, error) {
 	return true, nil
 }
 
-// TestConnection 测试连接
 func (a *App) TestConnection(conn *connection.Connection) (bool, error) {
-	return obs.TestConnection(conn)
+	provider, err := storage.NewProvider(conn)
+	if err != nil {
+		return false, err
+	}
+	defer provider.Close()
+	return provider.TestConnection()
 }
 
-// === OBS 操作方法 ===
-
-// ListBuckets 获取桶列表
-func (a *App) ListBuckets(connID string) ([]Bucket, error) {
+func (a *App) getProvider(connID string) (storage.StorageProvider, error) {
 	conn, err := a.connManager.Get(connID)
 	if err != nil {
 		return nil, err
 	}
-	client, err := obs.NewClientFromConfig(conn, "")
+	return storage.NewProvider(conn)
+}
+
+func (a *App) ListBuckets(connID string) ([]Bucket, error) {
+	provider, err := a.getProvider(connID)
 	if err != nil {
 		return nil, err
 	}
-	obsBuckets, err := client.ListBuckets()
+	defer provider.Close()
+
+	buckets, err := provider.ListBuckets()
 	if err != nil {
 		return nil, err
 	}
 
-	result := make([]Bucket, len(obsBuckets))
-	for i, b := range obsBuckets {
+	result := make([]Bucket, len(buckets))
+	for i, b := range buckets {
 		result[i] = Bucket{
 			Name:         b.Name,
-			CreationDate: b.CreationDate.String(),
+			CreationDate: b.CreationDate,
 			Location:     b.Location,
 		}
 	}
 	return result, nil
 }
 
-// CreateBucket 创建桶
 func (a *App) CreateBucket(connID string, location string, bucketName string) (bool, error) {
-	conn, err := a.connManager.Get(connID)
+	provider, err := a.getProvider(connID)
 	if err != nil {
 		return false, err
 	}
-	client, err := obs.NewClientFromConfig(conn, location)
-	if err != nil {
-		return false, err
-	}
-	err = client.CreateBucket(bucketName)
+	defer provider.Close()
+
+	err = provider.CreateBucket(bucketName)
 	return err == nil, err
 }
 
-// DeleteBucket 删除桶
 func (a *App) DeleteBucket(connID string, location string, bucketName string) (bool, error) {
-	conn, err := a.connManager.Get(connID)
+	provider, err := a.getProvider(connID)
 	if err != nil {
 		return false, err
 	}
-	client, err := obs.NewClientFromConfig(conn, location)
-	if err != nil {
-		return false, err
-	}
-	err = client.DeleteBucket(bucketName)
+	defer provider.Close()
+
+	err = provider.DeleteBucket(bucketName)
 	return err == nil, err
 }
 
-// ListObjects 获取对象列表
 func (a *App) ListObjects(connID string, location string, bucketName string, prefix string, delimiter string) (*ListObjectsResponse, error) {
-	conn, err := a.connManager.Get(connID)
+	provider, err := a.getProvider(connID)
 	if err != nil {
 		return nil, err
 	}
-	client, err := obs.NewClientFromConfig(conn, location)
-	if err != nil {
-		return nil, err
-	}
-	contents, commonPrefixes, err := client.ListObjects(bucketName, prefix, delimiter)
+	defer provider.Close()
+
+	result, err := provider.ListObjects(bucketName, prefix, delimiter)
 	if err != nil {
 		return nil, err
 	}
 
-	objects := make([]OBSObject, len(contents))
-	for i, c := range contents {
+	objects := make([]OBSObject, len(result.Objects))
+	for i, c := range result.Objects {
 		objects[i] = OBSObject{
 			Key:          c.Key,
 			Size:         c.Size,
-			LastModified: c.LastModified.String(),
-			StorageClass: string(c.StorageClass),
+			LastModified: c.LastModified,
+			StorageClass: c.StorageClass,
 		}
 	}
 
 	return &ListObjectsResponse{
 		Objects: objects,
-		Folders: commonPrefixes,
+		Folders: result.Folders,
 	}, nil
 }
 
-// UploadFile 上传文件
 func (a *App) UploadFile(connID string, location string, bucketName string, objectKey string, localFilePath string, taskID string) (string, error) {
-	conn, err := a.connManager.Get(connID)
-	if err != nil {
-		return "", err
-	}
-	client, err := obs.NewClientFromConfig(conn, location)
+	provider, err := a.getProvider(connID)
 	if err != nil {
 		wailsRuntime.EventsEmit(a.ctx, "transfer-error", map[string]interface{}{
 			"id":    taskID,
@@ -247,6 +218,7 @@ func (a *App) UploadFile(connID string, location string, bucketName string, obje
 		})
 		return "", err
 	}
+	defer provider.Close()
 
 	progressFn := func(transferred int64, total int64) {
 		wailsRuntime.EventsEmit(a.ctx, "transfer-progress", map[string]interface{}{
@@ -256,7 +228,7 @@ func (a *App) UploadFile(connID string, location string, bucketName string, obje
 		})
 	}
 
-	err = client.UploadObject(bucketName, objectKey, localFilePath, progressFn)
+	err = provider.UploadObject(bucketName, objectKey, localFilePath, progressFn)
 	if err != nil {
 		wailsRuntime.EventsEmit(a.ctx, "transfer-error", map[string]interface{}{
 			"id":    taskID,
@@ -271,13 +243,8 @@ func (a *App) UploadFile(connID string, location string, bucketName string, obje
 	return objectKey, nil
 }
 
-// DownloadFile 下载文件
 func (a *App) DownloadFile(connID string, location string, bucketName string, objectKey string, localFilePath string, taskID string) (string, error) {
-	conn, err := a.connManager.Get(connID)
-	if err != nil {
-		return "", err
-	}
-	client, err := obs.NewClientFromConfig(conn, location)
+	provider, err := a.getProvider(connID)
 	if err != nil {
 		wailsRuntime.EventsEmit(a.ctx, "transfer-error", map[string]interface{}{
 			"id":    taskID,
@@ -285,6 +252,7 @@ func (a *App) DownloadFile(connID string, location string, bucketName string, ob
 		})
 		return "", err
 	}
+	defer provider.Close()
 
 	progressFn := func(transferred int64, total int64) {
 		wailsRuntime.EventsEmit(a.ctx, "transfer-progress", map[string]interface{}{
@@ -294,7 +262,7 @@ func (a *App) DownloadFile(connID string, location string, bucketName string, ob
 		})
 	}
 
-	err = client.DownloadObject(bucketName, objectKey, localFilePath, progressFn)
+	err = provider.DownloadObject(bucketName, objectKey, localFilePath, progressFn)
 	if err != nil {
 		wailsRuntime.EventsEmit(a.ctx, "transfer-error", map[string]interface{}{
 			"id":    taskID,
@@ -309,13 +277,8 @@ func (a *App) DownloadFile(connID string, location string, bucketName string, ob
 	return objectKey, nil
 }
 
-// DownloadDirectory 递归下载整个目录
 func (a *App) DownloadDirectory(connID string, location string, bucketName string, prefix string, localDir string, taskID string) error {
-	conn, err := a.connManager.Get(connID)
-	if err != nil {
-		return err
-	}
-	client, err := obs.NewClientFromConfig(conn, location)
+	provider, err := a.getProvider(connID)
 	if err != nil {
 		wailsRuntime.EventsEmit(a.ctx, "transfer-error", map[string]interface{}{
 			"id":    taskID,
@@ -323,6 +286,7 @@ func (a *App) DownloadDirectory(connID string, location string, bucketName strin
 		})
 		return err
 	}
+	defer provider.Close()
 
 	progressFn := func(transferred int64, total int64) {
 		wailsRuntime.EventsEmit(a.ctx, "transfer-progress", map[string]interface{}{
@@ -332,7 +296,7 @@ func (a *App) DownloadDirectory(connID string, location string, bucketName strin
 		})
 	}
 
-	err = client.DownloadDirectory(bucketName, prefix, localDir, progressFn)
+	err = provider.DownloadDirectory(bucketName, prefix, localDir, progressFn)
 	if err != nil {
 		wailsRuntime.EventsEmit(a.ctx, "transfer-error", map[string]interface{}{
 			"id":    taskID,
@@ -347,34 +311,27 @@ func (a *App) DownloadDirectory(connID string, location string, bucketName strin
 	return nil
 }
 
-// DeleteObject 删除对象
 func (a *App) DeleteObject(connID string, location string, bucketName string, objectKey string) (bool, error) {
-	conn, err := a.connManager.Get(connID)
+	provider, err := a.getProvider(connID)
 	if err != nil {
 		return false, err
 	}
-	client, err := obs.NewClientFromConfig(conn, location)
-	if err != nil {
-		return false, err
-	}
-	err = client.DeleteObject(bucketName, objectKey)
+	defer provider.Close()
+
+	err = provider.DeleteObject(bucketName, objectKey)
 	return err == nil, err
 }
 
-// PreviewFile 预览文件内容（限制10MB）
 func (a *App) PreviewFile(connID string, location string, bucketName string, objectKey string) (*PreviewFileResponse, error) {
 	const maxPreviewSize = 10 * 1024 * 1024
 
-	conn, err := a.connManager.Get(connID)
+	provider, err := a.getProvider(connID)
 	if err != nil {
 		return nil, err
 	}
-	client, err := obs.NewClientFromConfig(conn, location)
-	if err != nil {
-		return nil, err
-	}
+	defer provider.Close()
 
-	content, contentType, err := client.GetObjectContent(bucketName, objectKey)
+	content, contentType, err := provider.GetObjectContent(bucketName, objectKey)
 	if err != nil {
 		return nil, err
 	}
@@ -398,35 +355,28 @@ func (a *App) PreviewFile(connID string, location string, bucketName string, obj
 	}, nil
 }
 
-// CopyObject 复制对象
 func (a *App) CopyObject(connID string, location string, srcBucket string, srcKey string, dstBucket string, dstKey string) (bool, error) {
-	conn, err := a.connManager.Get(connID)
+	provider, err := a.getProvider(connID)
 	if err != nil {
 		return false, err
 	}
-	client, err := obs.NewClientFromConfig(conn, location)
-	if err != nil {
-		return false, err
-	}
-	err = client.CopyObject(srcBucket, srcKey, dstBucket, dstKey)
+	defer provider.Close()
+
+	err = provider.CopyObject(srcBucket, srcKey, dstBucket, dstKey)
 	return err == nil, err
 }
 
-// MoveObject 移动对象
 func (a *App) MoveObject(connID string, location string, srcBucket string, srcKey string, dstBucket string, dstKey string) (bool, error) {
-	conn, err := a.connManager.Get(connID)
+	provider, err := a.getProvider(connID)
 	if err != nil {
 		return false, err
 	}
-	client, err := obs.NewClientFromConfig(conn, location)
-	if err != nil {
-		return false, err
-	}
-	err = client.MoveObject(srcBucket, srcKey, dstBucket, dstKey)
+	defer provider.Close()
+
+	err = provider.MoveObject(srcBucket, srcKey, dstBucket, dstKey)
 	return err == nil, err
 }
 
-// ClearAppCache 清除应用缓存（数据重置）
 func (a *App) ClearAppCache() (bool, error) {
 	err := db.ClearAllData()
 	if err != nil {
@@ -435,19 +385,14 @@ func (a *App) ClearAppCache() (bool, error) {
 	return true, nil
 }
 
-// === 主题管理方法 ===
-
-// GetAllThemes 获取所有可用主题列表
 func (a *App) GetAllThemes() []theme.ThemeConfig {
 	return a.themeManager.GetAllThemes()
 }
 
-// GetCurrentTheme 获取当前用户主题
 func (a *App) GetCurrentTheme(userID string) (string, error) {
 	return a.themeManager.GetCurrentThemeJSON(userID)
 }
 
-// SaveTheme 设置用户主题
 func (a *App) SaveTheme(userID string, themeID string, isDark bool) (bool, error) {
 	if err := a.themeManager.SaveUserTheme(userID, themeID, isDark); err != nil {
 		return false, err
@@ -455,7 +400,6 @@ func (a *App) SaveTheme(userID string, themeID string, isDark bool) (bool, error
 	return true, nil
 }
 
-// SaveBackgroundImage 保存用户背景图片
 func (a *App) SaveBackgroundImage(userID string, base64Image string) (bool, error) {
 	if err := a.themeManager.SaveBackgroundImage(userID, base64Image); err != nil {
 		return false, err
@@ -463,12 +407,10 @@ func (a *App) SaveBackgroundImage(userID string, base64Image string) (bool, erro
 	return true, nil
 }
 
-// GetBackgroundInfo 获取用户背景信息
 func (a *App) GetBackgroundInfo(userID string) (theme.BackgroundInfo, error) {
 	return a.themeManager.GetBackgroundInfo(userID)
 }
 
-// SaveOverlayOpacity 保存遮罩透明度
 func (a *App) SaveOverlayOpacity(userID string, opacity float64) (bool, error) {
 	if err := a.themeManager.SaveOverlayOpacity(userID, opacity); err != nil {
 		return false, err
@@ -476,7 +418,6 @@ func (a *App) SaveOverlayOpacity(userID string, opacity float64) (bool, error) {
 	return true, nil
 }
 
-// ClearBackgroundImage 清除用户背景图片
 func (a *App) ClearBackgroundImage(userID string) (bool, error) {
 	if err := a.themeManager.ClearBackgroundImage(userID); err != nil {
 		return false, err
@@ -484,16 +425,16 @@ func (a *App) ClearBackgroundImage(userID string) (bool, error) {
 	return true, nil
 }
 
-// EditFile 编辑文件：下载到临时目录，用系统应用打开，监听变化并自动上传
 func (a *App) EditFile(connID string, location string, bucketName string, objectKey string) (string, error) {
 	conn, err := a.connManager.Get(connID)
 	if err != nil {
 		return "", err
 	}
-	client, err := obs.NewClientFromConfig(conn, location)
+	provider, err := storage.NewProvider(conn)
 	if err != nil {
 		return "", err
 	}
+	defer provider.Close()
 
 	fileName := objectKey
 	if idx := strings.LastIndex(objectKey, "/"); idx != -1 {
@@ -507,7 +448,7 @@ func (a *App) EditFile(connID string, location string, bucketName string, object
 
 	localFilePath := filepath.Join(tempDir, fileName)
 
-	err = client.DownloadObject(bucketName, objectKey, localFilePath, nil)
+	err = provider.DownloadObject(bucketName, objectKey, localFilePath, nil)
 	if err != nil {
 		os.RemoveAll(tempDir)
 		return "", fmt.Errorf("下载文件失败: %v", err)
@@ -560,7 +501,15 @@ func (a *App) EditFile(connID string, location string, bucketName string, object
 					continue
 				}
 
-				err = client.UploadObject(bucketName, objectKey, localFilePath, nil)
+				editProvider, err := storage.NewProvider(conn)
+				if err != nil {
+					fmt.Printf("创建Provider失败: %v\n", err)
+					continue
+				}
+
+				err = editProvider.UploadObject(bucketName, objectKey, localFilePath, nil)
+				editProvider.Close()
+
 				if err != nil {
 					fmt.Printf("上传文件失败: %v\n", err)
 				} else {
@@ -587,10 +536,9 @@ func (a *App) EditFile(connID string, location string, bucketName string, object
 		return "", fmt.Errorf("打开文件失败: %v", err)
 	}
 
-	return fmt.Sprintf("文件已在系统应用中打开，编辑后将自动同步到 OBS\n临时文件: %s", localFilePath), nil
+	return fmt.Sprintf("文件已在系统应用中打开，编辑后将自动同步到云存储\n临时文件: %s", localFilePath), nil
 }
 
-// openWithSystemApp 使用系统默认应用打开文件
 func openWithSystemApp(path string) error {
 	var cmd *exec.Cmd
 

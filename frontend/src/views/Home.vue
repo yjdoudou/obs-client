@@ -10,8 +10,8 @@
           </div>
         </div>
       </div>
-      <h1 class="text-4xl font-black mb-4 bg-gradient-to-r from-textMain to-textLight bg-clip-text text-transparent italic">华为 OBS 客户端</h1>
-      <p class="text-textLight max-w-sm mb-10 leading-relaxed text-sm">连接您的华为云对象存储，体验极速、稳定、现代化的文件管理服务。</p>
+      <h1 class="text-4xl font-black mb-4 bg-gradient-to-r from-textMain to-textLight bg-clip-text text-transparent italic">多云存储客户端</h1>
+      <p class="text-textLight max-w-sm mb-10 leading-relaxed text-sm">连接您的云对象存储，支持华为云、腾讯云、阿里云、百度云及 MinIO，体验极速、稳定、现代化的文件管理服务。</p>
       
       <el-button type="primary" size="large" round class="!px-10 !h-12 shadow-lg shadow-primary/20" @click="emit('open-add')">
         添加云端存储

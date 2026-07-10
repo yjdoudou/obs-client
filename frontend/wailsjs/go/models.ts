@@ -93,12 +93,14 @@ export namespace connection {
 	export class Connection {
 	    id: string;
 	    name: string;
+	    provider: string;
 	    accessKeyId: string;
 	    secretAccessKey: string;
 	    region: string;
 	    endpoint: string;
 	    status: string;
 	    delimiter: string;
+	    extraConfig: string;
 	    // Go type: time
 	    createdAt: any;
 	    // Go type: time
@@ -112,12 +114,14 @@ export namespace connection {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.id = source["id"];
 	        this.name = source["name"];
+	        this.provider = source["provider"];
 	        this.accessKeyId = source["accessKeyId"];
 	        this.secretAccessKey = source["secretAccessKey"];
 	        this.region = source["region"];
 	        this.endpoint = source["endpoint"];
 	        this.status = source["status"];
 	        this.delimiter = source["delimiter"];
+	        this.extraConfig = source["extraConfig"];
 	        this.createdAt = this.convertValues(source["createdAt"], null);
 	        this.updatedAt = this.convertValues(source["updatedAt"], null);
 	    }
