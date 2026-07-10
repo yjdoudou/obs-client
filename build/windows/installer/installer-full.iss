@@ -7,6 +7,7 @@
 #define MyAppExeName "obs-client.exe"
 #define MyAppIcon "..\icon.ico"
 #define SourceDir "..\..\bin"
+#define WebView2Installer "MicrosoftEdgeWebView2RuntimeInstallerX64.exe"
 
 [Setup]
 AppId={{OBS-CLIENT-APP-GUID-FULL}}
@@ -35,7 +36,7 @@ Name: "desktopicon"; Description: "Create desktop shortcut"; GroupDescription: "
 
 [Files]
 Source: "{#SourceDir}\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
-Source: "MicrosoftEdgeWebView2RuntimeInstallerX64.exe"; DestDir: "{tmp}"; Flags: ignoreversion
+Source: "{#WebView2Installer}"; DestDir: "{tmp}"; Flags: ignoreversion
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
@@ -43,7 +44,7 @@ Name: "{group}\Uninstall {#MyAppName}"; Filename: "{uninstallexe}"
 Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
 
 [Run]
-Filename: "{tmp}\MicrosoftEdgeWebView2RuntimeInstallerX64.exe"; Parameters: "/silent /install"; Description: "Installing WebView2 Runtime..."; Flags: waituntilterminated skipifdoesntexist; StatusMsg: "Installing WebView2 Runtime..."
+Filename: "{tmp}\{#WebView2Installer}"; Parameters: "/silent /install"; Description: "Installing WebView2 Runtime..."; Flags: waituntilterminated; StatusMsg: "Installing WebView2 Runtime..."
 Filename: "{app}\{#MyAppExeName}"; Description: "Launch {#MyAppName}"; Flags: nowait postinstall skipifsilent
 
 [UninstallDelete]
