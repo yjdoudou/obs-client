@@ -150,6 +150,39 @@ wails build
 - macOS: `obs-client.app`
 - Linux: `obs-client`
 
+### 批量构建脚本
+
+我们提供了统一的构建脚本 `build.ps1`，支持三种打包模式：
+
+#### 绿色版（免安装）
+
+```powershell
+powershell -ExecutionPolicy Bypass -File build.ps1 -Mode green
+```
+
+- **特点**：无需安装，双击即可运行
+- **输出**：`build/bin/obs-client.exe`
+
+#### 标准安装版
+
+```powershell
+powershell -ExecutionPolicy Bypass -File build.ps1 -Mode installer
+```
+
+- **特点**：标准安装包，不包含 WebView2 Runtime
+- **要求**：系统需已安装 WebView2 Runtime
+- **输出**：`build/bin/obs-client-setup-1.0.0.exe`
+
+#### 完整安装版（含 WebView2）
+
+```powershell
+powershell -ExecutionPolicy Bypass -File build.ps1 -Mode installer-full
+```
+
+- **特点**：完整安装包，包含 WebView2 Runtime 离线安装包
+- **优势**：无需联网，自动安装 WebView2
+- **输出**：`build/bin/obs-client-setup-full-1.0.0.exe`
+
 ### 下载预编译版本
 
 我们提供预编译的安装包，您可以从 [Releases](https://github.com/yourusername/obs-client/releases) 页面下载对应平台的安装包。
