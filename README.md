@@ -1,9 +1,9 @@
 # <div align="center">
   <img src="frontend/src/assets/images/logo-universal.png" alt="OBS Client Logo" width="120" height="120">
 
-  # 华为 OBS 客户端工具
+  # 多云存储客户端
 
-  **一款现代化的华为云 OBS 对象存储管理工具**
+  **一款现代化的多云对象存储管理工具，支持华为 OBS、腾讯 COS、阿里 OSS、百度 BOS、MinIO**
 
   [![Go Version](https://img.shields.io/badge/Go-1.21+-00ADD8?style=flat&logo=go)](https://golang.org/)
   [![Vue Version](https://img.shields.io/badge/Vue-3.0+-4FC08D?style=flat&logo=vue.js)](https://vuejs.org/)
@@ -17,7 +17,7 @@
 
 ## <div align="center">✨ 项目简介</div>
 
-华为 OBS 客户端工具是一款基于 Wails 框架开发的跨平台桌面应用，专为华为云 OBS（对象存储服务）用户打造。它提供了直观的图形化界面，让您能够轻松管理 OBS 资源，无需依赖命令行工具或 Web 控制台。
+多云存储客户端是一款基于 Wails 框架开发的跨平台桌面应用，支持多种云存储服务：华为云 OBS、腾讯云 COS、阿里云 OSS、百度云 BOS 和开源 MinIO。它提供了直观的图形化界面，让您能够轻松管理各类对象存储资源，无需依赖命令行工具或 Web 控制台。
 
 ### 🎯 核心特性
 
@@ -69,7 +69,7 @@
 ### 后端
 - **Go 1.21+** - 高性能后端语言
 - **Wails 2.0+** - 跨平台桌面应用框架
-- **华为云 OBS Go SDK** - OBS 服务集成
+- **多云存储 SDK** - 华为 OBS、腾讯 COS、阿里 OSS、百度 BOS、MinIO SDK
 - **SQLite** - 本地数据存储
 
 ### 前端
@@ -133,11 +133,39 @@ npm install
 cd ..
 ```
 
-#### 4. 开发模式运行
+#### 4. 开发模式运行（推荐）
+
+开发模式支持**热重载**，修改代码后自动刷新，无需重新打包，大大提升开发效率。
 
 ```bash
 wails dev
 ```
+
+**开发模式特性：**
+
+- **前端热重载**：修改 Vue/TypeScript/CSS 文件后，界面自动刷新
+- **后端热重载**：修改 Go 文件后，后端自动重新编译并重启
+- **自动打开应用窗口**：启动后自动打开开发窗口
+- **开发工具**：支持打开浏览器开发者工具（Ctrl+Shift+I 或 Cmd+Shift+I）
+
+**开发工作流程：**
+
+1. 首次运行前确保已安装前端依赖（步骤 3）
+2. 在项目根目录执行 `wails dev`
+3. 打开浏览器开发者工具调试前端（可选）
+4. 修改代码后等待自动重载
+5. 验证功能，继续开发
+
+**快捷操作：**
+
+- **刷新窗口**：Ctrl+R / Cmd+R
+- **打开开发者工具**：Ctrl+Shift+I / Cmd+Shift+I
+- **退出开发模式**：Ctrl+C
+
+**注意事项：**
+
+- 如果修改了 `wails.json` 或 `main.go`，需要重启 `wails dev`
+- 开发模式下性能略低于生产版本，正式测试请使用生产构建
 
 #### 5. 构建生产版本
 
@@ -195,11 +223,12 @@ powershell -ExecutionPolicy Bypass -File build.ps1 -Mode installer-full
 
 1. 点击左侧边栏的"新建连接"按钮
 2. 填写连接信息：
+   - **存储提供商**：选择云存储类型（华为 OBS、腾讯 COS、阿里云 OSS、百度 BOS、MinIO）
    - **连接名称**：为您的连接起一个易记的名称
-   - **Access Key ID**：华为云 OBS 的 Access Key ID
-   - **Secret Access Key**：华为云 OBS 的 Secret Access Key
-   - **区域**：选择您的 OBS 服务所在区域
-   - **Endpoint**（可选）：自定义 OBS 服务地址
+   - **Access Key ID**：云服务的 Access Key ID
+   - **Secret Access Key**：云服务的 Secret Access Key
+   - **区域**：选择存储服务所在区域
+   - **Endpoint**（可选）：自定义服务地址（适用于私有化部署如 MinIO）
 3. 点击"测试连接"验证配置是否正确
 4. 点击"保存"完成连接创建
 
@@ -237,8 +266,19 @@ obs-client/
 │   ├── db/                   # 数据库模块
 │   │   ├── connection.go     # 连接数据库操作
 │   │   └── models.go         # 数据库模型
-│   └── obs/                  # OBS 客户端模块
-│       └── client.go         # OBS 客户端封装
+│   └── storage/              # 存储抽象层（支持多云）
+│       ├── provider.go       # 存储接口定义
+│       ├── factory.go        # Provider 工厂函数
+│       ├── huawei/           # 华为 OBS Provider
+│       │   └── provider.go
+│       ├── tencent/          # 腾讯 COS Provider
+│       │   └── provider.go
+│       ├── alibaba/          # 阿里云 OSS Provider
+│       │   └── provider.go
+│       ├── baidu/            # 百度 BOS Provider
+│       │   └── provider.go
+│       └── minio/            # MinIO Provider
+│           └── provider.go
 ├── frontend/                 # 前端代码
 │   ├── src/
 │   │   ├── assets/           # 静态资源
@@ -379,6 +419,8 @@ git push origin feature/your-feature-name
 - [x] 深色/浅色主题切换
 - [x] 传输进度显示
 - [x] 批量操作功能
+- [x] 多云存储支持（华为 OBS、腾讯 COS、阿里云 OSS、百度 BOS、MinIO）
+- [x] 存储抽象层设计
 
 ### 进行中 🚧
 - [ ] 断点续传功能
@@ -391,7 +433,6 @@ git push origin feature/your-feature-name
 - [ ] 多语言支持（i18n）
 - [ ] 快捷键支持
 - [ ] 插件系统
-- [ ] 支持多云存储（AWS S3、阿里云 OSS 等）
 - [ ] 版本管理功能
 - [ ] 生命周期管理
 - [ ] 数据迁移工具
@@ -453,6 +494,10 @@ SOFTWARE.
 - [Element Plus](https://element-plus.org/) - Vue 3 组件库
 - [TailwindCSS](https://tailwindcss.com/) - 实用优先的 CSS 框架
 - [华为云 OBS Go SDK](https://support.huaweicloud.com/sdkreference-obs/obs_02_0001.html) - OBS 服务 SDK
+- [腾讯云 COS Go SDK](https://cloud.tencent.com/document/product/436/12264) - COS 服务 SDK
+- [阿里云 OSS Go SDK](https://help.aliyun.com/document_detail/32144.html) - OSS 服务 SDK
+- [百度云 BOS Go SDK](https://cloud.baidu.com/doc/BOS/s/tjwvz9g1f) - BOS 服务 SDK
+- [MinIO Go SDK](https://docs.min.io/docs/golang-client-quickstart-guide.html) - MinIO 服务 SDK
 
 ---
 
