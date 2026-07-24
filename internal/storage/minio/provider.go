@@ -1,6 +1,7 @@
 package minio
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -13,7 +14,8 @@ import (
 	"obs-client/internal/connection"
 	"obs-client/internal/storage"
 
-	"github.com/minio/minio-go/v6"
+	"github.com/minio/minio-go/v7"
+	"github.com/minio/minio-go/v7/pkg/credentials"
 )
 
 type Provider struct {
@@ -41,7 +43,13 @@ func NewProvider(conn *connection.Connection) (storage.StorageProvider, error) {
 		endpoint = "localhost:9000"
 	}
 
-	client, err := minio.New(endpoint, conn.AccessKeyID, conn.SecretAccessKey, extraConfig.UseSSL)
+	endpoint = strings.TrimPrefix(endpoint, "http://")
+	endpoint = strings.TrimPrefix(endpoint, "https://")
+
+	client, err := minio.New(endpoint, &minio.Options{
+		Creds:  credentials.NewStaticV4(conn.AccessKeyID, conn.SecretAccessKey, ""),
+		Secure: extraConfig.UseSSL,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("创建MinIO客户端失败: %w", err)
 	}
@@ -50,7 +58,7 @@ func NewProvider(conn *connection.Connection) (storage.StorageProvider, error) {
 }
 
 func (p *Provider) TestConnection() (bool, error) {
-	_, err := p.client.ListBuckets()
+	_, err := p.client.ListBuckets(context.Background())
 	if err != nil {
 		return false, err
 	}
@@ -61,7 +69,7 @@ func (p *Provider) Close() {
 }
 
 func (p *Provider) ListBuckets() ([]storage.Bucket, error) {
-	result, err := p.client.ListBuckets()
+	result, err := p.client.ListBuckets(context.Background())
 	if err != nil {
 		return nil, err
 	}
@@ -78,21 +86,21 @@ func (p *Provider) ListBuckets() ([]storage.Bucket, error) {
 }
 
 func (p *Provider) CreateBucket(bucketName string) error {
-	return p.client.MakeBucket(bucketName, "")
+	return p.client.MakeBucket(context.Background(), bucketName, minio.MakeBucketOptions{})
 }
 
 func (p *Provider) DeleteBucket(bucketName string) error {
-	return p.client.RemoveBucket(bucketName)
+	return p.client.RemoveBucket(context.Background(), bucketName)
 }
 
 func (p *Provider) ListObjects(bucketName, prefix, delimiter string) (*storage.ListObjectsResult, error) {
 	var objects []storage.Object
 	var folders []string
 
-	doneCh := make(chan struct{})
-	defer close(doneCh)
-
-	for obj := range p.client.ListObjectsV2(bucketName, prefix, delimiter == "", doneCh) {
+	for obj := range p.client.ListObjects(context.Background(), bucketName, minio.ListObjectsOptions{
+		Prefix:    prefix,
+		Recursive: delimiter == "",
+	}) {
 		if obj.Err != nil {
 			return nil, obj.Err
 		}
@@ -135,7 +143,7 @@ func (p *Provider) UploadObject(bucketName, objectKey, localFilePath string, pro
 		progressFn(0, fileInfo.Size())
 	}
 
-	_, err = p.client.FPutObject(bucketName, objectKey, cleanPath, minio.PutObjectOptions{})
+	_, err = p.client.FPutObject(context.Background(), bucketName, objectKey, cleanPath, minio.PutObjectOptions{})
 	if err != nil {
 		return fmt.Errorf("上传失败: %w", err)
 	}
@@ -156,13 +164,13 @@ func (p *Provider) DownloadObject(bucketName, objectKey, localFilePath string, p
 	}
 
 	if progressFn != nil {
-		stat, err := p.client.StatObject(bucketName, objectKey, minio.StatObjectOptions{})
+		stat, err := p.client.StatObject(context.Background(), bucketName, objectKey, minio.StatObjectOptions{})
 		if err != nil {
 			return fmt.Errorf("获取文件元数据失败: %w", err)
 		}
 		total := stat.Size
 
-		resp, err := p.client.GetObject(bucketName, objectKey, minio.GetObjectOptions{})
+		resp, err := p.client.GetObject(context.Background(), bucketName, objectKey, minio.GetObjectOptions{})
 		if err != nil {
 			return fmt.Errorf("下载失败: %w", err)
 		}
@@ -193,7 +201,7 @@ func (p *Provider) DownloadObject(bucketName, objectKey, localFilePath string, p
 			}
 		}
 	} else {
-		err := p.client.FGetObject(bucketName, objectKey, cleanPath, minio.GetObjectOptions{})
+		err := p.client.FGetObject(context.Background(), bucketName, objectKey, cleanPath, minio.GetObjectOptions{})
 		if err != nil {
 			return fmt.Errorf("下载失败: %w", err)
 		}
@@ -266,22 +274,22 @@ func (p *Provider) DownloadDirectory(bucketName, prefix, localDir string, progre
 }
 
 func (p *Provider) DeleteObject(bucketName, objectKey string) error {
-	return p.client.RemoveObject(bucketName, objectKey)
+	return p.client.RemoveObject(context.Background(), bucketName, objectKey, minio.RemoveObjectOptions{})
 }
 
 func (p *Provider) CopyObject(srcBucket, srcKey, dstBucket, dstKey string) error {
-	resp, err := p.client.GetObject(srcBucket, srcKey, minio.GetObjectOptions{})
+	resp, err := p.client.GetObject(context.Background(), srcBucket, srcKey, minio.GetObjectOptions{})
 	if err != nil {
 		return fmt.Errorf("获取源对象失败: %w", err)
 	}
 	defer resp.Close()
 
-	stat, err := p.client.StatObject(srcBucket, srcKey, minio.StatObjectOptions{})
+	stat, err := p.client.StatObject(context.Background(), srcBucket, srcKey, minio.StatObjectOptions{})
 	if err != nil {
 		return fmt.Errorf("获取源对象元数据失败: %w", err)
 	}
 
-	_, err = p.client.PutObject(dstBucket, dstKey, resp, stat.Size, minio.PutObjectOptions{})
+	_, err = p.client.PutObject(context.Background(), dstBucket, dstKey, resp, stat.Size, minio.PutObjectOptions{})
 	if err != nil {
 		return fmt.Errorf("复制对象失败: %w", err)
 	}
@@ -298,7 +306,7 @@ func (p *Provider) MoveObject(srcBucket, srcKey, dstBucket, dstKey string) error
 }
 
 func (p *Provider) GetObjectContent(bucketName, objectKey string) ([]byte, string, error) {
-	resp, err := p.client.GetObject(bucketName, objectKey, minio.GetObjectOptions{})
+	resp, err := p.client.GetObject(context.Background(), bucketName, objectKey, minio.GetObjectOptions{})
 	if err != nil {
 		return nil, "", err
 	}

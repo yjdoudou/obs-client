@@ -52,7 +52,7 @@ export namespace app {
 		    if (!a) {
 		        return a;
 		    }
-		    if (a.slice) {
+		    if (a.slice && a.map) {
 		        return (a as any[]).map(elem => this.convertValues(elem, classs));
 		    } else if ("object" === typeof a) {
 		        if (asMap) {
@@ -130,7 +130,7 @@ export namespace connection {
 		    if (!a) {
 		        return a;
 		    }
-		    if (a.slice) {
+		    if (a.slice && a.map) {
 		        return (a as any[]).map(elem => this.convertValues(elem, classs));
 		    } else if ("object" === typeof a) {
 		        if (asMap) {
@@ -171,7 +171,7 @@ export namespace theme {
 	    description: string;
 	    preview: string;
 	    glassEnabled: boolean;
-	    variables: {[key: string]: any};
+	    variables: Record<string, any>;
 	
 	    static createFrom(source: any = {}) {
 	        return new ThemeConfig(source);
