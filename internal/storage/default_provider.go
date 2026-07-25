@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 )
 
@@ -150,12 +151,23 @@ func DefaultDownloadDirectory(provider StorageProvider, bucketName, prefix, loca
 }
 
 func DefaultDeleteDirectory(provider StorageProvider, bucketName, prefix string) error {
-	result, err := provider.ListObjects(bucketName, prefix, "")
+	prefixWithSlash := prefix
+	if !strings.HasSuffix(prefixWithSlash, "/") {
+		prefixWithSlash += "/"
+	}
+
+	result, err := provider.ListObjects(bucketName, prefixWithSlash, "")
 	if err != nil {
 		return fmt.Errorf("获取目录对象列表失败: %w", err)
 	}
 
-	for _, obj := range result.Objects {
+	sortedObjects := make([]Object, len(result.Objects))
+	copy(sortedObjects, result.Objects)
+	sort.Slice(sortedObjects, func(i, j int) bool {
+		return len(strings.Split(sortedObjects[i].Key, "/")) > len(strings.Split(sortedObjects[j].Key, "/"))
+	})
+
+	for _, obj := range sortedObjects {
 		if err := provider.DeleteObject(bucketName, obj.Key); err != nil {
 			return fmt.Errorf("删除对象失败 %s: %w", obj.Key, err)
 		}
@@ -164,6 +176,16 @@ func DefaultDeleteDirectory(provider StorageProvider, bucketName, prefix string)
 	for _, folder := range result.Folders {
 		if err := provider.DeleteObject(bucketName, folder); err != nil {
 			return fmt.Errorf("删除文件夹失败 %s: %w", folder, err)
+		}
+	}
+
+	nonRecursiveResult, err := provider.ListObjects(bucketName, prefixWithSlash, "/")
+	if err != nil {
+		return fmt.Errorf("获取非递归目录列表失败: %w", err)
+	}
+	for _, folder := range nonRecursiveResult.Folders {
+		if err := DefaultDeleteDirectory(provider, bucketName, folder); err != nil {
+			return fmt.Errorf("递归删除子目录失败 %s: %w", folder, err)
 		}
 	}
 
