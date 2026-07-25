@@ -30,6 +30,10 @@ export function DeleteConnection(arg1) {
   return window['go']['app']['App']['DeleteConnection'](arg1);
 }
 
+export function DeleteDirectory(arg1, arg2, arg3, arg4) {
+  return window['go']['app']['App']['DeleteDirectory'](arg1, arg2, arg3, arg4);
+}
+
 export function DeleteObject(arg1, arg2, arg3, arg4) {
   return window['go']['app']['App']['DeleteObject'](arg1, arg2, arg3, arg4);
 }
@@ -112,6 +116,10 @@ export function TestConnection(arg1) {
 
 export function UpdateConnection(arg1) {
   return window['go']['app']['App']['UpdateConnection'](arg1);
+}
+
+export function UploadDirectory(arg1, arg2, arg3, arg4, arg5, arg6) {
+  return window['go']['app']['App']['UploadDirectory'](arg1, arg2, arg3, arg4, arg5, arg6);
 }
 
 export function UploadFile(arg1, arg2, arg3, arg4, arg5, arg6) {

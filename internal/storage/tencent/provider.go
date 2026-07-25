@@ -175,6 +175,10 @@ func (p *Provider) UploadObject(bucketName, objectKey, localFilePath string, pro
 	return nil
 }
 
+func (p *Provider) UploadDirectory(bucketName, prefix, localDir string, progressFn storage.ProgressFunc) error {
+	return storage.DefaultUploadDirectory(p, bucketName, prefix, localDir, progressFn)
+}
+
 func (p *Provider) DownloadObject(bucketName, objectKey, localFilePath string, progressFn storage.ProgressFunc) error {
 	cleanPath := filepath.Clean(localFilePath)
 
@@ -225,71 +229,16 @@ func (p *Provider) DownloadObject(bucketName, objectKey, localFilePath string, p
 }
 
 func (p *Provider) DownloadDirectory(bucketName, prefix, localDir string, progressFn storage.ProgressFunc) error {
-	folderName := ""
-	trimmedPrefix := strings.TrimSuffix(prefix, "/")
-	if lastSlash := strings.LastIndex(trimmedPrefix, "/"); lastSlash != -1 {
-		folderName = trimmedPrefix[lastSlash+1:]
-	} else {
-		folderName = trimmedPrefix
-	}
-
-	targetDir := localDir
-	if folderName != "" {
-		targetDir = filepath.Join(localDir, folderName)
-	}
-
-	result, err := p.ListObjects(bucketName, prefix, "")
-	if err != nil {
-		return err
-	}
-
-	var totalSize int64
-	for _, obj := range result.Objects {
-		if !strings.HasSuffix(obj.Key, "/") {
-			totalSize += obj.Size
-		}
-	}
-
-	var downloadedSize int64
-
-	for _, obj := range result.Objects {
-		if strings.HasSuffix(obj.Key, "/") {
-			continue
-		}
-
-		relPath := obj.Key
-		if prefix != "" {
-			relPath = strings.TrimPrefix(obj.Key, prefix)
-		}
-
-		localFilePath := filepath.Join(targetDir, relPath)
-
-		dir := filepath.Dir(localFilePath)
-		if err := os.MkdirAll(dir, 0755); err != nil {
-			return err
-		}
-
-		var fileProgressFn func(int64, int64)
-		if progressFn != nil {
-			startSize := downloadedSize
-			fileProgressFn = func(fileTransferred int64, fileTotal int64) {
-				progressFn(startSize+fileTransferred, totalSize)
-			}
-		}
-
-		if err := p.DownloadObject(bucketName, obj.Key, localFilePath, fileProgressFn); err != nil {
-			return err
-		}
-
-		downloadedSize += obj.Size
-	}
-
-	return nil
+	return storage.DefaultDownloadDirectory(p, bucketName, prefix, localDir, progressFn)
 }
 
 func (p *Provider) DeleteObject(bucketName, objectKey string) error {
 	_, err := p.client.Object.Delete(context.Background(), objectKey)
 	return err
+}
+
+func (p *Provider) DeleteDirectory(bucketName, prefix string) error {
+	return storage.DefaultDeleteDirectory(p, bucketName, prefix)
 }
 
 func (p *Provider) CopyObject(srcBucket, srcKey, dstBucket, dstKey string) error {

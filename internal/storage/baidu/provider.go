@@ -151,6 +151,85 @@ func (p *Provider) UploadObject(bucketName, objectKey, localFilePath string, pro
 	return nil
 }
 
+func (p *Provider) UploadDirectory(bucketName, prefix, localDir string, progressFn storage.ProgressFunc) error {
+	cleanDir := filepath.Clean(localDir)
+
+	fileInfo, err := os.Stat(cleanDir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return fmt.Errorf("目录不存在: %s", cleanDir)
+		}
+		return fmt.Errorf("获取目录信息失败: %w", err)
+	}
+	if !fileInfo.IsDir() {
+		return fmt.Errorf("路径不是目录: %s", cleanDir)
+	}
+
+	dirName := filepath.Base(cleanDir)
+
+	var totalSize int64
+	err = filepath.WalkDir(cleanDir, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if !d.IsDir() {
+			info, err := d.Info()
+			if err != nil {
+				return err
+			}
+			totalSize += info.Size()
+		}
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("遍历目录失败: %w", err)
+	}
+
+	var uploadedSize int64
+
+	err = filepath.WalkDir(cleanDir, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			return nil
+		}
+
+		relPath, err := filepath.Rel(cleanDir, path)
+		if err != nil {
+			return fmt.Errorf("计算相对路径失败: %w", err)
+		}
+
+		objectKey := prefix + dirName + "/" + strings.ReplaceAll(relPath, "\\", "/")
+
+		fileInfo, err := d.Info()
+		if err != nil {
+			return err
+		}
+
+		var fileProgressFn func(int64, int64)
+		if progressFn != nil {
+			startSize := uploadedSize
+			fileProgressFn = func(fileTransferred int64, fileTotal int64) {
+				progressFn(startSize+fileTransferred, totalSize)
+			}
+		}
+
+		if err := p.UploadObject(bucketName, objectKey, path, fileProgressFn); err != nil {
+			return err
+		}
+
+		uploadedSize += fileInfo.Size()
+		return nil
+	})
+
+	if err != nil {
+		return fmt.Errorf("上传目录失败: %w", err)
+	}
+
+	return nil
+}
+
 func (p *Provider) DownloadObject(bucketName, objectKey, localFilePath string, progressFn storage.ProgressFunc) error {
 	cleanPath := filepath.Clean(localFilePath)
 
@@ -266,6 +345,21 @@ func (p *Provider) DownloadDirectory(bucketName, prefix, localDir string, progre
 func (p *Provider) DeleteObject(bucketName, objectKey string) error {
 	err := p.client.DeleteObject(bucketName, objectKey)
 	return err
+}
+
+func (p *Provider) DeleteDirectory(bucketName, prefix string) error {
+	result, err := p.ListObjects(bucketName, prefix, "")
+	if err != nil {
+		return fmt.Errorf("获取目录对象列表失败: %w", err)
+	}
+
+	for _, obj := range result.Objects {
+		if err := p.DeleteObject(bucketName, obj.Key); err != nil {
+			return fmt.Errorf("删除对象失败 %s: %w", obj.Key, err)
+		}
+	}
+
+	return nil
 }
 
 func (p *Provider) CopyObject(srcBucket, srcKey, dstBucket, dstKey string) error {

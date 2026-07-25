@@ -281,6 +281,40 @@ func (a *App) DownloadFile(connID string, location string, bucketName string, ob
 	return objectKey, nil
 }
 
+func (a *App) UploadDirectory(connID string, location string, bucketName string, prefix string, localDir string, taskID string) error {
+	provider, err := a.getProvider(connID)
+	if err != nil {
+		wailsRuntime.EventsEmit(a.ctx, "transfer-error", map[string]interface{}{
+			"id":    taskID,
+			"error": err.Error(),
+		})
+		return err
+	}
+	defer provider.Close()
+
+	progressFn := func(transferred int64, total int64) {
+		wailsRuntime.EventsEmit(a.ctx, "transfer-progress", map[string]interface{}{
+			"id":          taskID,
+			"transferred": transferred,
+			"total":       total,
+		})
+	}
+
+	err = provider.UploadDirectory(bucketName, prefix, localDir, progressFn)
+	if err != nil {
+		wailsRuntime.EventsEmit(a.ctx, "transfer-error", map[string]interface{}{
+			"id":    taskID,
+			"error": err.Error(),
+		})
+		return err
+	}
+
+	wailsRuntime.EventsEmit(a.ctx, "transfer-complete", map[string]interface{}{
+		"id": taskID,
+	})
+	return nil
+}
+
 func (a *App) DownloadDirectory(connID string, location string, bucketName string, prefix string, localDir string, taskID string) error {
 	provider, err := a.getProvider(connID)
 	if err != nil {
@@ -323,6 +357,17 @@ func (a *App) DeleteObject(connID string, location string, bucketName string, ob
 	defer provider.Close()
 
 	err = provider.DeleteObject(bucketName, objectKey)
+	return err == nil, err
+}
+
+func (a *App) DeleteDirectory(connID string, location string, bucketName string, prefix string) (bool, error) {
+	provider, err := a.getProvider(connID)
+	if err != nil {
+		return false, err
+	}
+	defer provider.Close()
+
+	err = provider.DeleteDirectory(bucketName, prefix)
 	return err == nil, err
 }
 

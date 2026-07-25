@@ -18,6 +18,8 @@ export function DeleteBucket(arg1:string,arg2:string,arg3:string):Promise<boolea
 
 export function DeleteConnection(arg1:string):Promise<boolean>;
 
+export function DeleteDirectory(arg1:string,arg2:string,arg3:string,arg4:string):Promise<boolean>;
+
 export function DeleteObject(arg1:string,arg2:string,arg3:string,arg4:string):Promise<boolean>;
 
 export function DownloadDirectory(arg1:string,arg2:string,arg3:string,arg4:string,arg5:string,arg6:string):Promise<void>;
@@ -59,5 +61,7 @@ export function SelectSaveFile(arg1:string):Promise<string>;
 export function TestConnection(arg1:connection.Connection):Promise<boolean>;
 
 export function UpdateConnection(arg1:connection.Connection):Promise<boolean>;
+
+export function UploadDirectory(arg1:string,arg2:string,arg3:string,arg4:string,arg5:string,arg6:string):Promise<void>;
 
 export function UploadFile(arg1:string,arg2:string,arg3:string,arg4:string,arg5:string,arg6:string):Promise<string>;

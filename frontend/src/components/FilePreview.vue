@@ -314,17 +314,11 @@ watch([() => props.visible, content], async ([visible, contentVal]) => {
   }
 })
 
-watch(() => props.visible, (val) => {
-  if (val) {
+watch([() => props.visible, () => props.connId, () => props.bucketName, () => props.objectKey], ([visible, connId, bucketName, objectKey]) => {
+  if (visible && connId && bucketName && objectKey) {
     loadContent()
-  } else {
+  } else if (!visible) {
     revokeBlobUrl()
-  }
-})
-
-watch([() => props.connId, () => props.bucketName, () => props.objectKey], () => {
-  if (props.visible) {
-    loadContent()
   }
 })
 

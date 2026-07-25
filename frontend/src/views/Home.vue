@@ -61,6 +61,10 @@
               <el-icon class="mr-1.5"><Upload /></el-icon>
               上传文件
             </el-button>
+            <el-button type="primary" size="default" class="!rounded-lg !px-4 shadow-md shadow-primary/20" @click="handleUploadDirectory" :loading="isUploading">
+              <el-icon class="mr-1.5"><Folder /></el-icon>
+              上传文件夹
+            </el-button>
             <div class="w-px h-4 bg-black/10 dark:bg-white/10 mx-1"></div>
           </template>
           
@@ -171,6 +175,13 @@
                       </button>
                     </el-tooltip>
                   </template>
+                  <template v-else>
+                    <el-tooltip content="删除" placement="top">
+                      <button class="action-btn text-red-400 hover:bg-red-400/10 dark:hover:bg-red-400/20" @click.stop="handleDelete(row)">
+                        <el-icon><Delete /></el-icon>
+                      </button>
+                    </el-tooltip>
+                  </template>
                 </div>
               </template>
             </el-table-column>
@@ -227,7 +238,8 @@ import { storeToRefs } from 'pinia'
 import { 
   ListBuckets, ListObjects, UploadFile, DownloadFile, 
   DeleteObject, SelectFile, SelectSaveFile,
-  SelectDirectory, DownloadDirectory, EditFile
+  SelectDirectory, DownloadDirectory, EditFile,
+  UploadDirectory, DeleteDirectory
 } from '../../wailsjs/go/app/App'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { 
@@ -489,7 +501,6 @@ const handleUpload = async () => {
     const uploadPromises = []
     
     for (const localPath of filePaths) {
-      // 使用更可靠的文件名提取方法
       const fileName = localPath.replace(/\\/g, '/').split('/').pop() || 'upload.file'
       const objectKey = currentPrefix.value + fileName
       
@@ -498,7 +509,7 @@ const handleUpload = async () => {
         id: taskID,
         name: fileName,
         type: 'upload',
-        size: 0 // Backend will report total size in first progress event
+        size: 0
       })
 
       uploadPromises.push(UploadFile(connId.value, currentLocation.value, currentBucket.value, objectKey, localPath, taskID))
@@ -509,6 +520,33 @@ const handleUpload = async () => {
     fetchObjects()
   } catch (e: any) {
     ElMessage.error("上传错误: " + (e.message || e))
+  } finally {
+    isUploading.value = false
+  }
+}
+
+const handleUploadDirectory = async () => {
+  if (!connId.value || !currentBucket.value) return
+  try {
+    const localDir = await SelectDirectory()
+    if (!localDir) return
+    
+    isUploading.value = true
+    
+    const dirName = localDir.replace(/\\/g, '/').split('/').pop() || 'upload'
+    const taskID = `up-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+    transferStore.addTask({
+      id: taskID,
+      name: dirName,
+      type: 'upload',
+      size: 0
+    })
+
+    await UploadDirectory(connId.value, currentLocation.value, currentBucket.value, currentPrefix.value, localDir, taskID)
+    ElMessage.success("文件夹上传任务已提交")
+    fetchObjects()
+  } catch (e: any) {
+    ElMessage.error("上传文件夹错误: " + (e.message || e))
   } finally {
     isUploading.value = false
   }
@@ -536,14 +574,24 @@ const handleDownload = async (row: Content) => {
   }
 }
 
-const handleDelete = async (row: Content) => {
+const handleDelete = async (row: any) => {
   if (!connId.value || !currentBucket.value) return
   try {
-    const name = row.Key.split('/').pop() || row.Key
-    await ElMessageBox.confirm(`确定要删除对象 ${name} 吗?`, '警告', {
+    const isFolder = row.type === 'folder'
+    const objectKey = isFolder ? row.fullPath : row.Key
+    const name = isFolder ? row.name : row.Key.split('/').pop() || row.Key
+    
+    const confirmMsg = isFolder ? `确定要删除文件夹 ${name} 及其所有内容吗? 此操作不可撤销！` : `确定要删除对象 ${name} 吗?`
+    
+    await ElMessageBox.confirm(confirmMsg, '警告', {
       type: 'warning',
     })
-    await DeleteObject(connId.value, currentLocation.value, currentBucket.value, row.Key)
+    
+    if (isFolder) {
+      await DeleteDirectory(connId.value, currentLocation.value, currentBucket.value, objectKey)
+    } else {
+      await DeleteObject(connId.value, currentLocation.value, currentBucket.value, objectKey)
+    }
     ElMessage.success("删除成功")
     fetchObjects()
   } catch (e: any) {
@@ -607,13 +655,14 @@ const handleBatchDelete = async () => {
     for (const item of selectedItems.value) {
       if (item.type === 'file') {
         await DeleteObject(connId.value, currentLocation.value, currentBucket.value, item.Key)
+      } else {
+        await DeleteDirectory(connId.value, currentLocation.value, currentBucket.value, item.fullPath)
       }
-      // Note: Folder deletion would require recursive logic on backend too, 
-      // but for now we focus on files and simple folders as markers.
     }
     
     ElMessage.success("批量删除操作已提交")
     fetchObjects()
+    clearSelection()
   } catch (e: any) {
     if (e !== 'cancel') ElMessage.error("批量删除出错: " + (e.message || e))
   }
